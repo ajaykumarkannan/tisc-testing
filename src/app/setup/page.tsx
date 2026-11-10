@@ -17,7 +17,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
       <form action={setupAdmin}>
         <label><span>Full name</span><input name="name" required style={{ width: "100%" }} /></label>
         <label><span>Email</span><input name="email" type="email" required style={{ width: "100%" }} /></label>
-        <label><span>Setup code (the SESSION_SECRET value from Vercel)</span><input name="code" type="password" required autoComplete="off" style={{ width: "100%" }} /></label>
+        <label><span>Setup code: paste the value of the <code>SESSION_SECRET</code> environment variable you created in Vercel (Settings → Environment Variables)</span><input name="code" type="password" required autoComplete="off" style={{ width: "100%" }} /></label>
         <label><span>Password (8+ characters)</span><input name="password" type="password" minLength={8} required style={{ width: "100%" }} /></label>
         <button>Create admin</button>
       </form>
