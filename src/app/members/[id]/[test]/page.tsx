@@ -5,7 +5,7 @@ import { fmtDate, getSignoffs } from "@/lib/data";
 import { canAdminister, canViewMember, isEligible, isExaminer } from "@/lib/permissions";
 import { computeProgress } from "@/lib/progress";
 import { getSheet, versionLabel } from "@/lib/sheets";
-import { CREDIT_LABEL, CREDIT_MARK, RANK_LABEL, circled, sheetHeading, type CreditKind } from "@/lib/tests";
+import { CREDIT_LABEL, CREDIT_MARK, ENDORSEMENT_LABEL, RANK_LABEL, circled, sheetHeading, type CreditKind } from "@/lib/tests";
 import { completeTest, signItem, trackTest, unsignItem, untrackTest } from "@/app/actions";
 import { Details } from "@/components/Details";
 import { Flash } from "@/components/Flash";
@@ -30,6 +30,9 @@ export default async function SheetPage({ params, searchParams }: {
         WHERE c.user_id=$1 AND c.test_key=$2`, [id, testKey]),
   ]);
   const byItem = new Map(signoffs.map((s) => [s.item_key, s]));
+  // What passing this test does to the member, in words.
+  const grantText = test.grants.rank ? `promote to ${RANK_LABEL[test.grants.rank]}` : `grant ${ENDORSEMENT_LABEL[test.grants.endorsement!]} rights`;
+  const resultText = test.grants.rank ? `is now ${RANK_LABEL[test.grants.rank]}` : `now holds ${ENDORSEMENT_LABEL[test.grants.endorsement!]} rights`;
   const canTrack = isExaminer(user) && user.id !== id && !user.viewedBy;
   // Everyone testing this candidate on this test: examiners who marked "I'm testing" plus anyone who signed an item.
   const testers = await query<{ id: number; name: string; signed: number; tracking: boolean }>(
@@ -57,6 +60,11 @@ export default async function SheetPage({ params, searchParams }: {
     <>
       <div className="no-print">
         <Flash sp={sp} />
+        {completion && (
+          <p className="flash ok passed">
+            ✓ {member.name} passed {test.title} and {resultText}. Final tester {completion.name}, {fmtDate(completion.completed_at)}.
+          </p>
+        )}
         {!completion && !eligible && (
           <p className="flash error">{member.name} is not currently eligible for this test (rating: {RANK_LABEL[member.rank]}).</p>
         )}
@@ -107,7 +115,8 @@ export default async function SheetPage({ params, searchParams }: {
                 ) : canSign ? (
                   <form action={completeTest} className="sig-form" style={{ marginTop: 6 }}>
                     {hidden()}
-                    <button disabled={!progress.complete}>Complete test &amp; sign as final tester</button>
+                    <button disabled={!progress.complete}>Complete test &amp; {grantText}</button>
+                    <span className="small muted">Signs you as final tester{progress.complete ? ` and updates ${member.name}’s status.` : "."}</span>
                     {!progress.complete && <span className="small muted">{progress.total - progress.done} item(s) still to sign</span>}
                   </form>
                 ) : null}

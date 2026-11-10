@@ -3,6 +3,8 @@ import { query } from "@/lib/db";
 import { ENDORSEMENTS, ENDORSEMENT_LABEL, RANKS, RANK_LABEL, type Endorsement, type Rank } from "@/lib/tests";
 import { createUser, updateUser, viewAs } from "@/app/actions";
 import { Flash } from "@/components/Flash";
+import { TempPassword } from "@/components/TempPassword";
+import { tempPassword } from "@/lib/temp-password";
 
 const ROLES = [["member", "Member"], ["committee", "Testing committee"], ["admin", "Administrator"]] as const;
 
@@ -23,7 +25,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<Re
         <div className="row">
           <input name="name" placeholder="Full name" required className="grow" />
           <input name="email" type="email" placeholder="Email" required className="grow" />
-          <input name="password" type="text" placeholder="Temporary password (8+)" minLength={8} required />
+          <TempPassword initial={tempPassword()} required />
           <select name="role">{ROLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
           <select name="rank">{RANKS.map((r) => <option key={r} value={r}>{RANK_LABEL[r]}</option>)}</select>
           <button>Add</button>
@@ -46,7 +48,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<Re
                     <input type="checkbox" name={`end_${e}`} defaultChecked={(u.endorsements ?? []).includes(e)} /> {ENDORSEMENT_LABEL[e]}
                   </label>
                 ))}
-                <label className="user-pw" style={{ margin: 0 }}><span className="mobile-only">New password</span><input name="password" type="text" placeholder="(unchanged)" aria-label="New password" style={{ width: 130 }} /></label>
+                <label className="user-pw" style={{ margin: 0 }}><span className="mobile-only">New password</span><TempPassword placeholder="(unchanged)" label="New password" /></label>
                 <button className="secondary">Save</button>
               </form>
               {u.id !== me?.id && (

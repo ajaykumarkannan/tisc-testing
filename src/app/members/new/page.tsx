@@ -1,19 +1,13 @@
-import { randomInt } from "node:crypto";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { allowedStartingRanks, canAddMembers } from "@/lib/permissions";
 import { RANK_LABEL } from "@/lib/tests";
 import { addMember } from "@/app/actions";
 import { Flash } from "@/components/Flash";
+import { TempPassword } from "@/components/TempPassword";
+import { tempPassword } from "@/lib/temp-password";
 
 export const dynamic = "force-dynamic";
-
-/** Easy to read aloud on the dock: no 0/O or 1/l/I. */
-function tempPassword() {
-  const chars = "abcdefghjkmnpqrstuvwxyz23456789";
-  const part = () => Array.from({ length: 4 }, () => chars[randomInt(chars.length)]).join("");
-  return `${part()}-${part()}-${part()}`;
-}
 
 export default async function NewMember({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
@@ -28,7 +22,7 @@ export default async function NewMember({ searchParams }: { searchParams: Promis
         <label><span>Full name</span><input name="name" required autoComplete="off" style={{ width: "100%" }} /></label>
         <label><span>Email</span><input name="email" type="email" required autoComplete="off" style={{ width: "100%" }} /></label>
         <label><span>Temporary password</span>
-          <input name="password" type="text" required minLength={8} defaultValue={tempPassword()} autoComplete="off" style={{ width: "100%" }} />
+          <TempPassword initial={tempPassword()} required />
         </label>
         {ranks.length > 1 ? (
           <label><span>Starting rating (for members who already passed on paper)</span>
