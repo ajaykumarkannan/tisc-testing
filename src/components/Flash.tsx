@@ -12,7 +12,7 @@ export function Flash({ sp }: { sp: Record<string, string | string[] | undefined
       {err && <div className="flash error" role="alert"><CircleAlert size={18} aria-hidden="true" /><span>{err}</span></div>}
       {sp.saved && <Ok>Sheet saved.</Ok>}
       {sp.added && <Ok>Member added. Give them their email and temporary password; they’ll choose their own password when they first sign in.</Ok>}
-      {sp.completed && <Ok>Test completed. Please notify TestComplete@torontosailing.com.</Ok>}
+      {sp.completed && <Ok>Test completed and status updated. Please notify TestComplete@torontosailing.com.</Ok>}
       {(sp.changed || sp.password === "changed") && <Ok>Password changed. Any other signed-in devices have been signed out.</Ok>}
     </>
   );

@@ -47,6 +47,9 @@ export default async function SheetPage({ params, searchParams }: {
   const canSign = !completion && eligible && canAdminister(user, testKey) && user.id !== id;
   const canCredit = canSign && user.role !== "member";
   const self = user.id === id;
+  // What passing this test does to the member, in words.
+  const grantText = test.grants.rank ? `promote to ${RANK_LABEL[test.grants.rank]}` : `grant ${ENDORSEMENT_LABEL[test.grants.endorsement!]} rights`;
+  const resultText = test.grants.rank ? `is now ${RANK_LABEL[test.grants.rank]}` : `now holds ${ENDORSEMENT_LABEL[test.grants.endorsement!]} rights`;
 
   const sections: SectionVM[] = test.sections.map((sec) => ({
     key: sec.key, title: sec.title, note: sec.note,
@@ -87,6 +90,7 @@ export default async function SheetPage({ params, searchParams }: {
         canSign={canSign} canCredit={canCredit}
         ineligible={!completion && !eligible ? `${member.name} is not currently eligible for this test (rating: ${RANK_LABEL[member.rank]}).` : undefined}
         grants={test.grants.rank ? `promoted to ${RANK_LABEL[test.grants.rank]}` : `given ${ENDORSEMENT_LABEL[test.grants.endorsement!]} rights`}
+        grantText={grantText} resultText={resultText}
         completion={completion ? { name: completion.name, date: fmtDate(completion.completed_at), version: completion.sheet_version } : undefined}
         version={versionLabel(test)}
         track={canTrack ? { on: tracking } : undefined}

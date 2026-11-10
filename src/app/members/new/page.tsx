@@ -1,4 +1,3 @@
-import { randomInt } from "node:crypto";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronRight, UserPlus } from "lucide-react";
@@ -10,15 +9,10 @@ import { Flash } from "@/components/Flash";
 import { Field } from "@/components/AuthCard";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PageHead } from "@/components/ui";
+import { TempPassword } from "@/components/TempPassword";
+import { tempPassword } from "@/lib/temp-password";
 
 export const dynamic = "force-dynamic";
-
-/** Easy to read aloud on the dock: no 0/O or 1/l/I. */
-function tempPassword() {
-  const chars = "abcdefghjkmnpqrstuvwxyz23456789";
-  const part = () => Array.from({ length: 4 }, () => chars[randomInt(chars.length)]).join("");
-  return `${part()}-${part()}-${part()}`;
-}
 
 export default async function NewMember({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
@@ -34,8 +28,8 @@ export default async function NewMember({ searchParams }: { searchParams: Promis
       <form action={addMember} className="card">
         <Field label="Full name"><input className="input" name="name" required autoComplete="off" /></Field>
         <Field label="Email"><input className="input" name="email" type="email" required autoComplete="off" inputMode="email" /></Field>
-        <Field label="Temporary password" hint="Suggested for you: easy to read aloud. Change it if you like (8+ characters).">
-          <input className="input mono" name="password" type="text" required minLength={8} defaultValue={tempPassword()} autoComplete="off" />
+        <Field label="Temporary password" hint="Easy to read aloud on the dock. Tap Generate for another, or type your own (8+ characters).">
+          <TempPassword initial={tempPassword()} required />
         </Field>
         {ranks.length > 1 ? (
           <Field label="Starting rating" hint="For members who already passed on paper.">

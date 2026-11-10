@@ -7,6 +7,8 @@ import { Flash } from "@/components/Flash";
 import { Field } from "@/components/AuthCard";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Avatar, PageHead } from "@/components/ui";
+import { TempPassword } from "@/components/TempPassword";
+import { tempPassword } from "@/lib/temp-password";
 
 const ROLES = [["member", "Member"], ["committee", "Testing committee"], ["admin", "Administrator"]] as const;
 
@@ -29,7 +31,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<Re
         <div className="add-grid">
           <Field label="Full name"><input className="input" name="name" required autoComplete="off" /></Field>
           <Field label="Email"><input className="input" name="email" type="email" required autoComplete="off" /></Field>
-          <Field label="Temporary password"><input className="input" name="password" type="text" placeholder="8+ characters" minLength={8} required autoComplete="off" /></Field>
+          <Field label="Temporary password"><TempPassword initial={tempPassword()} required /></Field>
           <Field label="Role"><select className="select" name="role">{ROLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
           <Field label="Rating"><select className="select" name="rank">{RANKS.map((r) => <option key={r} value={r}>{RANK_LABEL[r]}</option>)}</select></Field>
           <SubmitButton pendingText="Adding…" icon={<UserPlus size={18} aria-hidden="true" />}>Add user</SubmitButton>
@@ -62,7 +64,7 @@ export default async function Users({ searchParams }: { searchParams: Promise<Re
                     </label>
                   ))}
                 </fieldset>
-                <Field label="New password"><input className="input" name="password" type="text" placeholder="(unchanged)" aria-label="New password" autoComplete="off" /></Field>
+                <Field label="New password"><TempPassword placeholder="(unchanged)" label="New password" /></Field>
                 <SubmitButton className="btn btn--secondary" pendingText="Saving…" icon={<Save size={17} aria-hidden="true" />}>Save</SubmitButton>
               </div>
             </form>

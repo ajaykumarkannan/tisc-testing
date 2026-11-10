@@ -48,12 +48,19 @@ await p.goto(BASE + "/setup"); ok(p.url().includes("/login") || p.url() === BASE
 
 // 2. admin creates users
 await p.goto(BASE + "/admin/users");
+{
+  const f0 = p.locator("form").filter({ has: p.locator("button:has-text('Add')") });
+  const pre = await f0.locator("input[name=password]").inputValue();
+  ok(/^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/.test(pre), "add-user form pre-fills a generated temporary password");
+  await f0.locator("button:has-text('Generate')").click();
+  ok((await f0.locator("input[name=password]").inputValue()) !== pre, "Generate makes a new temporary password");
+}
 for (const [name, email, role, rank] of [["Cora Committee","c@x.com","committee","sr_helms"],["Sam Skipper","s@x.com","member","skipper"],["Nina Novice","n@x.com","member","novice"],["Hal Helms","h@x.com","member","helms"]]) {
   const f = p.locator("form").filter({ has: p.locator("button:has-text('Add')") });
   await f.locator("input[name=name]").fill(name); await f.locator("input[name=email]").fill(email);
   await f.locator("input[name=password]").fill("password123");
   await f.locator("select[name=role]").selectOption(role); await f.locator("select[name=rank]").selectOption(rank);
-  await f.locator("button").click(); await p.waitForSelector(`input[value="${name}"]`);
+  await f.locator("button:has-text('Add')").click(); await p.waitForSelector(`input[value="${name}"]`);
 }
 ok((await p.locator("input[name=name][value]").count()) === 5, "4 users created");
 await p.goto(BASE + "/account"); ok(new URL(p.url()).pathname === "/account" && !(await p.textContent("main")).includes("set by an administrator"),
@@ -116,6 +123,7 @@ ok(true, "stop tracking removes them from My tests");
 const c = await login("c@x.com");
 await c.goto(BASE + nHelmsLink);
 ok(await c.locator("button:has-text('Complete test')").isDisabled(), "complete disabled until all signed");
+ok((await c.textContent("button:has-text('Complete test')")).includes("promote to Helms"), "complete button says it will promote to Helms");
 await c.locator("input[name=credit]").first().check();
 await c.locator("button:has-text('Sign off')").first().click(); await c.waitForSelector("text=Cansail 2 credit");
 ok(true, "committee recorded a Cansail credit");
@@ -131,6 +139,7 @@ ok((await signBtn.count()) === 0, "committee signed all remaining items");
 await c.screenshot({ path: OUT + "/helms-sheet-signed.png", fullPage: true });
 await Promise.all([c.waitForURL(/completed=1/), c.click("button:has-text('Complete test')")]);
 ok((await c.textContent(".sheet")).includes("Cora Committee"), "test completed with final tester signature");
+ok((await c.textContent(".passed")).includes("Nina Novice passed Helms and is now Helms"), "sheet confirms the status change");
 const ts = await c.textContent(".testers");
 ok(ts.includes("Cora Committee (19 signed)") && ts.includes("Sam Skipper (1 signed)"), "testers list shows each examiner's sign-off count");
 
