@@ -57,7 +57,8 @@ Hobie sailing" share one signature box, as on paper.
 
 Two independent properties on a user make this work: `role` (`admin` / `committee` / `member`) and `rank`
 (novice / helms / sr_helms / skipper). A skipper who is on the testing committee gets the union of both.
-Rules enforced server-side: nobody can sign off their own sheet; only the examiner who signed an item (or the
+Rules enforced server-side: nobody can sign off (or remove sign-offs from) their own sheet; logins lock for 15
+minutes after 5 failures per email (30 per IP); only the examiner who signed an item (or the
 committee/admin) can remove a sign-off.
 
 The "who may administer what" matrix lives in one place (`src/lib/permissions.ts`) so the club can change it.
@@ -118,9 +119,9 @@ Environment variables are documented in [`.env.example`](.env.example).
 1. **Neon via Vercel Marketplace** (Vercel → Storage). This sets `DATABASE_URL` automatically.
 2. **Vercel env vars**: add `SESSION_SECRET` (`openssl rand -hex 32`). `ALLOW_SIGNUP=true` is optional.
 3. Deploy (Vercel builds every push to `main`). The tables are created automatically on first request.
-4. Visit the site. With no users yet it opens **/setup**, where you create the first admin. Only the club's admin
-   email can do this (`ADMIN_EMAIL`, default `commodore@torontosailing.com`), and the page closes after the
-   first account exists.
+4. Visit the site. With no admin yet it opens **/setup**. Create the first admin with the club's admin email
+   (`ADMIN_EMAIL`, default `commodore@torontosailing.com`) and the **setup code**: the `SESSION_SECRET` value
+   (or `SETUP_TOKEN` if you set one). The page closes once an admin exists.
 5. Create members at **Users**, and set the rating of anyone who already passed on paper.
 
 ## CI

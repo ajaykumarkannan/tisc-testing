@@ -60,4 +60,13 @@ CREATE TABLE IF NOT EXISTS test_sheet_revisions (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (test_key, revision)
 );
+
+-- Failed logins, for lockout (rows older than a day are pruned).
+CREATE TABLE IF NOT EXISTS login_failures (
+  id    BIGSERIAL PRIMARY KEY,
+  email TEXT NOT NULL,
+  ip    TEXT NOT NULL,
+  at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS login_failures_at ON login_failures (at);
 `;

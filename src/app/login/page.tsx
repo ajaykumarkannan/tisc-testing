@@ -7,7 +7,7 @@ import { Flash } from "@/components/Flash";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   if (await getUser()) redirect("/");
-  if (!(await one("SELECT 1 FROM users LIMIT 1"))) redirect("/setup");
+  if (!(await one("SELECT 1 FROM users WHERE role='admin' LIMIT 1"))) redirect("/setup");
   const sp = await searchParams;
   return (
     <div className="card" style={{ maxWidth: 380, margin: "40px auto" }}>

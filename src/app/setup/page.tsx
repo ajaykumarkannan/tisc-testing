@@ -6,7 +6,7 @@ import { Flash } from "@/components/Flash";
 export const dynamic = "force-dynamic";
 
 export default async function SetupPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
-  if (await one("SELECT 1 FROM users LIMIT 1")) redirect("/login");
+  if (await one("SELECT 1 FROM users WHERE role='admin' LIMIT 1")) redirect("/login");
   const sp = await searchParams;
   return (
     <div className="card" style={{ maxWidth: 420, margin: "40px auto" }}>
@@ -17,6 +17,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
       <form action={setupAdmin}>
         <label><span>Full name</span><input name="name" required style={{ width: "100%" }} /></label>
         <label><span>Email</span><input name="email" type="email" required style={{ width: "100%" }} /></label>
+        <label><span>Setup code (the SESSION_SECRET value from Vercel)</span><input name="code" type="password" required autoComplete="off" style={{ width: "100%" }} /></label>
         <label><span>Password (8+ characters)</span><input name="password" type="password" minLength={8} required style={{ width: "100%" }} /></label>
         <button>Create admin</button>
       </form>

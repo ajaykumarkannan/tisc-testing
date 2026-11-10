@@ -16,9 +16,15 @@ const login = async (email, pw = "password123") => {
 // 1. first-time setup
 let p = await page();
 await p.goto(BASE + "/"); ok(p.url().endsWith("/setup"), "fresh DB redirects to /setup");
-await p.fill("input[name=name]", "Commodore"); await p.fill("input[name=email]", "someone@else.com"); await p.fill("input[name=password]", "password123");
+const CODE = process.env.SESSION_SECRET;
+if (!CODE) throw new Error("e2e needs SESSION_SECRET (the /setup code)");
+await p.fill("input[name=name]", "Mallory"); await p.fill("input[name=email]", "commodore@torontosailing.com"); await p.fill("input[name=code]", "wrong-code-wrong-code"); await p.fill("input[name=password]", "password123");
+await p.click("button"); await p.waitForURL(/error=/); ok((await p.textContent(".flash.error")).includes("setup code"), "setup rejects wrong setup code");
+await p.goto(BASE + "/setup");
+await p.fill("input[name=name]", "Commodore"); await p.fill("input[name=email]", "someone@else.com"); await p.fill("input[name=code]", CODE); await p.fill("input[name=password]", "password123");
 await p.click("button"); await p.waitForURL(/error=/); ok((await p.textContent(".flash.error")).includes("designated"), "non-admin email rejected");
-await p.fill("input[name=name]", "Commodore"); await p.fill("input[name=email]", "commodore@torontosailing.com"); await p.fill("input[name=password]", "password123");
+await p.goto(BASE + "/setup");
+await p.fill("input[name=name]", "Commodore"); await p.fill("input[name=email]", "commodore@torontosailing.com"); await p.fill("input[name=code]", CODE); await p.fill("input[name=password]", "password123");
 await Promise.all([p.waitForURL(BASE + "/"), p.click("button")]); ok(true, "admin created and signed in");
 await p.goto(BASE + "/setup"); ok(p.url().includes("/login") || p.url() === BASE + "/", "setup page closed after first user");
 
@@ -93,6 +99,15 @@ await c.goto(`${BASE}${nHelmsLink.replace("helms", "hobie")}`);
 const hs = await c.textContent(".sheet");
 ok(hs.includes("(HOBIE)") && hs.includes("NEW HOBIE CHECK") && hs.includes("rev 1"), "edited sheet used for candidates");
 await c.screenshot({ path: OUT + "/hobie-sheet-rev1.png", fullPage: true });
+
+// 7b. key lookups don't accept prototype names
+const r404 = await c.goto(`${BASE}/members/1/constructor`); ok(r404.status() === 404, "unknown test key → 404, not 500");
+
+// 7c. login lockout after repeated failures (Nina; she does not log in again after this)
+const lp = await page();
+for (let i = 0; i < 5; i++) { await lp.goto(BASE + "/login"); await lp.fill("input[name=email]", "n@x.com"); await lp.fill("input[name=password]", "nope-nope"); await lp.click("button"); await lp.waitForURL(/error=/); }
+await lp.goto(BASE + "/login"); await lp.fill("input[name=email]", "n@x.com"); await lp.fill("input[name=password]", "password123"); await lp.click("button"); await lp.waitForURL(/error=/);
+ok((await lp.textContent(".flash.error")).includes("Too many"), "login locked after 5 failures, even with the right password");
 
 // 8. helms cannot edit sheets; committee can't sign own sheet
 const h = await login("h@x.com"); await h.goto(BASE + "/sheets/hobie"); ok(h.url() === BASE + "/", "helms cannot edit sheets");

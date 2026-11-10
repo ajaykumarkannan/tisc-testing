@@ -1,6 +1,8 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { timingSafeEqual } from "node:crypto";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { endSession, loadUser, requireAdmin, requireUser, startSession } from "@/lib/auth";
@@ -18,13 +20,32 @@ const num = (f: FormData, k: string) => Number(f.get(k));
 const fail = (path: string, msg: string): never => redirect(`${path}${path.includes("?") ? "&" : "?"}error=${encodeURIComponent(msg)}`);
 
 // ---------- auth ----------
+// A real bcrypt hash, so a login for an unknown email costs the same time as a real one.
+const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
+const LOCK_MINUTES = 15, MAX_PER_EMAIL = 5, MAX_PER_IP = 30;
+
+async function clientIp() {
+  const h = await headers();
+  return (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || h.get("x-real-ip") || "unknown";
+}
+
 export async function login(f: FormData) {
-  const email = str(f, "email");
-  const u = await one<{ id: number; password_hash: string }>("SELECT id,password_hash FROM users WHERE lower(email)=lower($1)", [email]);
-  // Compare even when the user is missing to keep timing similar.
-  const ok = await bcrypt.compare(str(f, "password"), u?.password_hash ?? "$2b$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvali");
-  if (!u || !ok) fail("/login", "Invalid email or password");
-  await startSession(u!.id);
+  const email = str(f, "email").toLowerCase();
+  const ip = await clientIp();
+  const recent = await one<{ by_email: number; by_ip: number }>(
+    `SELECT count(*) FILTER (WHERE email=$1)::int AS by_email, count(*) FILTER (WHERE ip=$2)::int AS by_ip
+       FROM login_failures WHERE at > now() - make_interval(mins => $3)`, [email, ip, LOCK_MINUTES]);
+  if (recent && (recent.by_email >= MAX_PER_EMAIL || recent.by_ip >= MAX_PER_IP))
+    return fail("/login", `Too many failed attempts. Try again in ${LOCK_MINUTES} minutes.`);
+  const u = await one<{ id: number; password_hash: string }>("SELECT id,password_hash FROM users WHERE lower(email)=$1", [email]);
+  const ok = await bcrypt.compare(str(f, "password"), u?.password_hash ?? DUMMY_HASH);
+  if (!u || !ok) {
+    await query("INSERT INTO login_failures (email, ip) VALUES ($1,$2)", [email.slice(0, 200), ip.slice(0, 100)]);
+    await query("DELETE FROM login_failures WHERE at < now() - interval '1 day'");
+    return fail("/login", "Invalid email or password");
+  }
+  await query("DELETE FROM login_failures WHERE email=$1", [email]);
+  await startSession(u.id);
   redirect("/");
 }
 export async function logout() {
@@ -43,17 +64,29 @@ export async function signup(f: FormData) {
   redirect("/");
 }
 
-/** One-time creation of the first admin. Only works while there are no users, and only for ADMIN_EMAIL. */
+/**
+ * The setup code is SETUP_TOKEN if set, otherwise SESSION_SECRET. Only someone with access to the
+ * Vercel project knows it, so nobody else can claim the admin account on a fresh deploy.
+ */
+function setupCodeMatches(code: string) {
+  const expected = process.env.SETUP_TOKEN || process.env.SESSION_SECRET || "";
+  const a = Buffer.from(code), b = Buffer.from(expected);
+  return expected.length >= 16 && a.length === b.length && timingSafeEqual(a, b);
+}
+
+/** One-time creation of the first admin. Needs the setup code; only works while no admin exists, only for ADMIN_EMAIL. */
 export async function setupAdmin(f: FormData) {
   const expected = adminEmail().toLowerCase();
   const [name, email, password] = [str(f, "name"), str(f, "email"), str(f, "password")];
+  if (!setupCodeMatches(str(f, "code"))) return fail("/setup", "Incorrect setup code");
   if (email.toLowerCase() !== expected) return fail("/setup", "That email is not the designated administrator email");
   if (!name || password.length < 8) return fail("/setup", "Name and an 8+ character password are required");
   const hash = await bcrypt.hash(password, 10);
   const id = await tx(async (c) => {
     await c.query("LOCK TABLE users IN EXCLUSIVE MODE");
     const r = await c.query(
-      "INSERT INTO users (email,name,password_hash,role) SELECT $1,$2,$3,'admin' WHERE NOT EXISTS (SELECT 1 FROM users) RETURNING id",
+      `INSERT INTO users (email,name,password_hash,role) SELECT $1,$2,$3,'admin'
+        WHERE NOT EXISTS (SELECT 1 FROM users WHERE role='admin' OR lower(email)=lower($1)) RETURNING id`,
       [email, name, hash]);
     return r.rows[0]?.id as number | undefined;
   });
@@ -92,6 +125,7 @@ export async function unsignItem(f: FormData) {
   const [userId, testKey, itemKey] = [num(f, "userId"), str(f, "testKey"), str(f, "itemKey")];
   const back = `/members/${userId}/${testKey}`;
   if (!canAdminister(actor, testKey)) return fail(back, "Not authorised");
+  if (actor.id === userId) return fail(back, "You cannot change sign-offs on your own test");
   if (await one("SELECT 1 FROM completions WHERE user_id=$1 AND test_key=$2", [userId, testKey])) return fail(back, "Test already completed");
   const s = await one<{ examiner_id: number }>("SELECT examiner_id FROM signoffs WHERE user_id=$1 AND test_key=$2 AND item_key=$3", [userId, testKey, itemKey]);
   if (!s) return;
@@ -171,7 +205,7 @@ export async function saveSheet(f: FormData) {
   const testKey = str(f, "testKey");
   const back = `/sheets/${testKey}`;
   if (!canEditSheets(actor)) return fail("/", "Only the testing committee can edit sheets");
-  if (!RULES_BY_KEY[testKey]) return fail("/sheets", "Unknown sheet");
+  if (!Object.hasOwn(RULES_BY_KEY, testKey)) return fail("/sheets", "Unknown sheet");
   let parsed: unknown;
   try { parsed = JSON.parse(String(f.get("content") ?? "")); } catch { return fail(back, "Could not read the sheet"); }
   const v = validateSheet(parsed);
@@ -203,7 +237,7 @@ export async function resetSheet(f: FormData) {
   const testKey = str(f, "testKey");
   if (!canEditSheets(actor)) return fail("/", "Only the testing committee can edit sheets");
   const { DEFAULT_BY_KEY, contentOf } = await import("@/lib/tests");
-  const def = DEFAULT_BY_KEY[testKey];
+  const def = Object.hasOwn(DEFAULT_BY_KEY, testKey) ? DEFAULT_BY_KEY[testKey] : null;
   if (!def) return fail("/sheets", "Unknown sheet");
   const fd = new FormData();
   fd.set("testKey", testKey);
