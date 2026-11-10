@@ -139,3 +139,5 @@ table.list { width: 100%; border-collapse: collapse; background: var(--card); } 
 .view-as-banner { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: center; padding: 8px 16px; background: #fff4d6; color: #5c4400; border-bottom: 1px solid #e8cf86; }
 .view-as-banner form { margin: 0; }
 .view-as-form { padding: 0 8px 8px; margin: 0; }
+.track-form { margin: 8px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.my-test { display: flex; flex-direction: column; gap: 8px; }

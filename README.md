@@ -62,6 +62,10 @@ Rules enforced server-side: nobody can sign off (or remove sign-offs from) their
 minutes after 5 failures per email (30 per IP); only the examiner who signed an item (or the
 committee/admin) can remove a sign-off.
 
+**My tests** (skippers and above): lists every candidate/test you've signed at least one item for, plus any you've
+marked **"I'm testing this candidate"** on their sheet (tracking is per test). Each row shows overall progress and
+how many items you signed; in-progress tests come first, then completed ones.
+
 **Adding members:** skippers, the testing committee and admins can add members from **Members → + Add member**,
 with a suggested temporary password; the new member must choose their own password on first sign-in. Skippers can
 only add Novices, the committee can set a starting rating (for people who passed on paper), and roles stay admin-only.

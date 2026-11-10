@@ -19,6 +19,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <>
               <nav>
                 <Link href="/">My progress</Link>
+                {isExaminer(user) && <Link href="/my-tests">My tests</Link>}
                 {isExaminer(user) && <Link href="/members">Members</Link>}
                 {canEditSheets(user) && <Link href="/sheets">Testing sheets</Link>}
                 {isAdmin(user) && <Link href="/admin/users">Users</Link>}
