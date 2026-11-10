@@ -169,16 +169,6 @@ export function SheetChecklist(p: Props) {
               <Printer size={18} aria-hidden="true" /><span className="btn-label">Print</span>
             </button>
           </div>
-          <div className="testers">
-            <span className="testers__label">Testing this candidate:</span>{" "}
-            {p.testers.length === 0 ? <span className="muted">nobody yet</span> : p.testers.map((t, i) => (
-              <span key={t.id} className="tester">
-                <Avatar name={t.name} size="sm" />
-                <span>{t.name}<span className="muted"> ({t.note})</span></span>
-                {i < p.testers.length - 1 && <span className="sr-only">, </span>}
-              </span>
-            ))}
-          </div>
           <div className="sheet-bar__progress">
             <div className="progress">
               <ProgressBar done={p.done} total={p.total} label={false} />
@@ -227,6 +217,16 @@ export function SheetChecklist(p: Props) {
               </div>
             </div>
             {p.wind && <div className="wind" title="Minimum base wind"><b>{p.wind}</b><span>Min Base Wind</span></div>}
+          </div>
+          <div className="testers">
+            <span className="testers__label">Testing this candidate:</span>{" "}
+            {p.testers.length === 0 ? <span className="muted">nobody yet</span> : p.testers.map((t, i) => (
+              <span key={t.id} className="tester">
+                <Avatar name={t.name} size="sm" />
+                <span>{t.name}<span className="muted"> ({t.note})</span></span>
+                {i < p.testers.length - 1 && <span className="sr-only">, </span>}
+              </span>
+            ))}
           </div>
           {p.notes.length > 0 && <ul className="sheet-notes">{p.notes.map((t, i) => <li key={i}>{t}</li>)}</ul>}
           <div className="sheet-cand">
