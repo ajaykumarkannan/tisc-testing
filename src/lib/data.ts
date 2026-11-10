@@ -37,3 +37,18 @@ export const getCompletions = (userId: number) =>
 
 export const fmtDate = (d: Date | string) =>
   new Date(d).toLocaleDateString("en-CA", { timeZone: "America/Toronto", year: "numeric", month: "short", day: "numeric" });
+
+export interface RecentSignoff {
+  test_key: string;
+  item_key: string;
+  examiner_name: string;
+  signed_at: Date;
+  credit: string | null;
+  note: string | null;
+}
+/** Most recent sign-offs on a member's sheets (read-only; for the history list). */
+export const recentSignoffs = (userId: number, limit = 8) =>
+  query<RecentSignoff>(
+    `SELECT s.test_key, s.item_key, u.name AS examiner_name, s.signed_at, s.credit, s.note
+       FROM signoffs s JOIN users u ON u.id = s.examiner_id
+      WHERE s.user_id=$1 ORDER BY s.signed_at DESC LIMIT $2`, [userId, limit]);

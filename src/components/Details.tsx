@@ -15,3 +15,6 @@ export function Details({ lines }: { lines: string[] }) {
   flush();
   return <>{out}</>;
 }
+
+/** Number of signature-relevant detail lines, for the "Details (n)" toggle label. */
+export const detailCount = (lines: string[]) => lines.filter((l) => !l.startsWith("## ")).length;

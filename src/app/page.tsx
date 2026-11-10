@@ -6,9 +6,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const user = await requireUser();
   return (
     <>
-      <h1>My progress</h1>
       <Flash sp={await searchParams} />
-      <MemberOverview member={user} />
+      <MemberOverview member={user} eyebrow="My progress" self />
     </>
   );
 }
