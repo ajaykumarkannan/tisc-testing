@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ClipboardList, Compass, LogOut, Menu, Sailboat, UserCog, UserRound, Users, X } from "lucide-react";
+import { ClipboardList, Compass, ListChecks, LogOut, Menu, Sailboat, UserCog, UserRound, Users, X } from "lucide-react";
 import { logout } from "@/app/actions";
 import { Avatar } from "./ui";
 
-export type NavKey = "home" | "members" | "sheets" | "users" | "account";
+export type NavKey = "home" | "mytests" | "members" | "sheets" | "users" | "account";
 const NAV: Record<NavKey, { href: string; label: string; Icon: typeof Compass }> = {
   home: { href: "/", label: "My progress", Icon: Compass },
+  mytests: { href: "/my-tests", label: "My tests", Icon: ListChecks },
   members: { href: "/members", label: "Members", Icon: Users },
   sheets: { href: "/sheets", label: "Testing sheets", Icon: ClipboardList },
   users: { href: "/admin/users", label: "Users", Icon: UserCog },

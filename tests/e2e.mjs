@@ -83,6 +83,7 @@ const nb = await n.textContent("main");
 ok(nb.includes("Helms") && nb.includes("Laser-Only Helms") && !nb.includes("Senior Helms"), "novice sees Helms + Laser-Only only");
 const nid = n.url(); const nHelmsLink = await n.getAttribute("a[href$='/helms']", "href");
 await n.goto(BASE + "/members"); ok(n.url() === BASE + "/", "novice cannot browse members");
+await n.goto(BASE + "/my-tests"); ok(n.url() === BASE + "/", "novice has no My tests page");
 await n.goto(BASE + nHelmsLink); ok((await n.locator("form button:has-text('Sign off')").count()) === 0, "novice cannot sign own sheet");
 const hid = Number(nHelmsLink.split("/")[2]) + 1; // Hal was created right after Nina
 await n.goto(`${BASE}/members/${hid}`); ok(n.url() === BASE + "/", "novice cannot view another member");
@@ -97,6 +98,18 @@ await s.locator("button:has-text('Sign off')").first().click();
 await s.waitForSelector("text=Good dock approach"); ok(true, "skipper signed an item with note");
 await s.goto(`${BASE}/members/${hid}/sr_helms`);
 ok((await s.locator("button:has-text('Sign off')").count()) === 0, "skipper cannot administer Senior Helms");
+
+// 4b. "My tests": signed candidates appear automatically; others can be tracked
+await s.click("button:has-text('testing this candidate')");
+await s.waitForSelector("text=You’re testing this candidate");
+ok(true, "skipper marked a candidate as testing them");
+await s.goto(BASE + "/my-tests");
+const mt = await s.textContent("main");
+ok(mt.includes("Nina Novice") && mt.includes("You signed 1 item"), "My tests lists a candidate I signed for");
+ok(mt.includes("Hal Helms") && mt.includes("Tracking"), "My tests lists a candidate I'm tracking");
+await s.locator(".my-test", { hasText: "Hal Helms" }).locator("button:has-text('Stop tracking')").click();
+await s.waitForSelector(".my-test:has-text('Hal Helms')", { state: "detached" });
+ok(true, "stop tracking removes them from My tests");
 
 // 5. committee finishes and completes
 const c = await login("c@x.com");

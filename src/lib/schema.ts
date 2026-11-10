@@ -74,4 +74,13 @@ CREATE TABLE IF NOT EXISTS login_failures (
   at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS login_failures_at ON login_failures (at);
+
+-- Candidates/tests an examiner has said they're testing ("My tests").
+CREATE TABLE IF NOT EXISTS tracked_tests (
+  examiner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  test_key    TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (examiner_id, user_id, test_key)
+);
 `;

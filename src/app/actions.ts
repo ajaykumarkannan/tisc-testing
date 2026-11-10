@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { endSession, getRealUser, loadUser, requireActor, requireAdminActor, startSession, startViewAs, stopViewAs } from "@/lib/auth";
 import { one, query, tx } from "@/lib/db";
-import { allowedStartingRanks, canAddMembers, canAdminister, canEditSheets, isEligible } from "@/lib/permissions";
+import { allowedStartingRanks, canAddMembers, canAdminister, canEditSheets, isEligible, isExaminer } from "@/lib/permissions";
 import { computeProgress } from "@/lib/progress";
 import { ENDORSEMENTS, RANKS, RULES_BY_KEY, allItems, type CreditKind } from "@/lib/tests";
 import { getSheet, versionLabel } from "@/lib/sheets";
@@ -183,6 +183,27 @@ export async function completeTest(f: FormData) {
   revalidatePath("/", "layout");
   redirect(`${back}?completed=1`);
 }
+
+// ---------- "My tests": examiners tracking candidates ----------
+async function setTracking(f: FormData, on: boolean) {
+  const actor = await requireActor();
+  const [userId, testKey] = [num(f, "userId"), str(f, "testKey")];
+  // Only two places post here; anything else falls back to the sheet.
+  const back = str(f, "back") === "my-tests" ? "/my-tests" : `/members/${userId}/${testKey}`;
+  if (!isExaminer(actor)) return fail("/", "Only skippers and the testing committee can track candidates");
+  if (!Object.hasOwn(RULES_BY_KEY, testKey) || !Number.isInteger(userId)) return fail("/my-tests", "Unknown test");
+  if (userId === actor.id) return fail(back, "You can't track your own test");
+  if (on) {
+    if (!(await one("SELECT 1 FROM users WHERE id=$1", [userId]))) return fail("/my-tests", "Unknown member");
+    await query("INSERT INTO tracked_tests (examiner_id,user_id,test_key) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING", [actor.id, userId, testKey]);
+  } else {
+    await query("DELETE FROM tracked_tests WHERE examiner_id=$1 AND user_id=$2 AND test_key=$3", [actor.id, userId, testKey]);
+  }
+  revalidatePath("/my-tests");
+  redirect(back);
+}
+export async function trackTest(f: FormData) { return setTracking(f, true); }
+export async function untrackTest(f: FormData) { return setTracking(f, false); }
 
 // ---------- adding members (skippers, committee, admin) ----------
 export async function addMember(f: FormData) {

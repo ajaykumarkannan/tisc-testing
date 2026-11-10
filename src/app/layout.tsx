@@ -16,7 +16,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await getUser();
   const links: NavKey[] = user
-    ? ["home", ...(isExaminer(user) ? ["members" as const] : []), ...(canEditSheets(user) ? ["sheets" as const] : []),
+    ? ["home", ...(isExaminer(user) ? ["mytests" as const, "members" as const] : []), ...(canEditSheets(user) ? ["sheets" as const] : []),
        ...(isAdmin(user) ? ["users" as const] : []), "account"]
     : [];
   const detail = user

@@ -2,10 +2,10 @@
 
 import { useRef, useState, useSyncExternalStore } from "react";
 import {
-  Check, ChevronDown, CircleCheck, Flag, ListFilter, Lock, Mail, MessageSquarePlus, MessageSquareText,
+  BookmarkCheck, BookmarkPlus, Check, ChevronDown, CircleCheck, Flag, ListFilter, Lock, Mail, MessageSquarePlus, MessageSquareText,
   PartyPopper, PenLine, Printer, TriangleAlert, Undo2, X,
 } from "lucide-react";
-import { completeTest, signItem, unsignItem } from "@/app/actions";
+import { completeTest, signItem, trackTest, unsignItem, untrackTest } from "@/app/actions";
 import { Details, detailCount } from "@/components/Details";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Avatar, ProgressBar } from "@/components/ui";
@@ -21,6 +21,7 @@ type Props = {
   testTitle: string; heading: string; revision: number; wind?: string; notes: string[];
   sections: SectionVM[]; done: number; total: number; canSign: boolean; canCredit: boolean;
   ineligible?: string; grants: string; completion?: { name: string; date: string; version: string }; version: string;
+  track?: { on: boolean }; fresh?: boolean;
 };
 
 /** Wide screens show item details expanded by default; phones keep them collapsed. */
@@ -123,7 +124,7 @@ function ItemRow({ it, n, p, wide }: { it: ItemVM; n: number; p: Props; wide: bo
 
 const CONFETTI = ["#34c46f", "#5ea8f7", "#f0c060", "#3cc7bb", "#f78fb3", "#0a5bab"];
 
-export function SheetChecklist(p: Props & { fresh?: boolean }) {
+export function SheetChecklist(p: Props) {
   const wide = useWide();
   const [remaining, setRemaining] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -143,6 +144,23 @@ export function SheetChecklist(p: Props & { fresh?: boolean }) {
             </div>
           </div>
           <div className="sheet-bar__actions">
+            {p.track && (
+              <form action={p.track.on ? untrackTest : trackTest} className="track-form">
+                <Hidden userId={p.userId} testKey={p.testKey} />
+                {p.track.on ? (
+                  <SubmitButton className="btn btn--secondary toggle-btn track-on" aria-pressed={true} aria-label="You’re testing this candidate. Stop tracking"
+                    title="You’re testing this candidate (tap to stop tracking)"
+                    icon={<BookmarkCheck size={18} aria-hidden="true" />}>
+                    <span className="btn-label">You’re testing this candidate</span><span className="sr-only">. Stop tracking</span>
+                  </SubmitButton>
+                ) : (
+                  <SubmitButton className="btn btn--secondary" title="Add this candidate to My tests" aria-label="I’m testing this candidate"
+                    icon={<BookmarkPlus size={18} aria-hidden="true" />}>
+                    <span className="btn-label">I’m testing this candidate</span>
+                  </SubmitButton>
+                )}
+              </form>
+            )}
             <button type="button" className="btn btn--secondary toggle-btn" aria-pressed={remaining}
               onClick={() => setRemaining(!remaining)} title="Show remaining items only">
               <ListFilter size={18} aria-hidden="true" /><span className="btn-label">Remaining only</span>

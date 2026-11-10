@@ -4,7 +4,7 @@ import { ChevronRight } from "lucide-react";
 import { loadUser, requireUser } from "@/lib/auth";
 import { one } from "@/lib/db";
 import { fmtDate, getSignoffs } from "@/lib/data";
-import { canAdminister, canViewMember, isEligible } from "@/lib/permissions";
+import { canAdminister, canViewMember, isEligible, isExaminer } from "@/lib/permissions";
 import { computeProgress } from "@/lib/progress";
 import { getSheet, versionLabel } from "@/lib/sheets";
 import { CREDIT_LABEL, CREDIT_MARK, ENDORSEMENT_LABEL, RANK_LABEL, circled, sheetHeading, type CreditKind } from "@/lib/tests";
@@ -31,6 +31,8 @@ export default async function SheetPage({ params, searchParams }: {
         WHERE c.user_id=$1 AND c.test_key=$2`, [id, testKey]),
   ]);
   const byItem = new Map(signoffs.map((s) => [s.item_key, s]));
+  const canTrack = isExaminer(user) && user.id !== id && !user.viewedBy;
+  const tracking = canTrack && !!(await one("SELECT 1 FROM tracked_tests WHERE examiner_id=$1 AND user_id=$2 AND test_key=$3", [user.id, id, testKey]));
   const progress = computeProgress(test, byItem.keys());
   const eligible = isEligible(test, member);
   const canSign = !completion && eligible && canAdminister(user, testKey) && user.id !== id;
@@ -78,6 +80,8 @@ export default async function SheetPage({ params, searchParams }: {
         grants={test.grants.rank ? `promoted to ${RANK_LABEL[test.grants.rank]}` : `given ${ENDORSEMENT_LABEL[test.grants.endorsement!]} rights`}
         completion={completion ? { name: completion.name, date: fmtDate(completion.completed_at), version: completion.sheet_version } : undefined}
         version={versionLabel(test)}
+        track={canTrack ? { on: tracking } : undefined}
+        fresh={!!sp.completed}
       />
 
       <PrintSheet test={test} candidate={member.name} sections={sections}
