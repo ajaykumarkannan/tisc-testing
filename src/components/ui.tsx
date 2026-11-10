@@ -56,7 +56,7 @@ export function ProgressRing({ done, total, size = 60, stroke = 6 }: { done: num
         <circle className="ring__value" cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke}
           strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} />
       </svg>
-      <span className="ring__label">{Math.round(pct * 100)}%</span>
+      <span className="ring__label" style={{ fontSize: Math.round(size * 0.24) }}>{Math.round(pct * 100)}%</span>
     </div>
   );
 }

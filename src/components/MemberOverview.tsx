@@ -107,7 +107,7 @@ export async function MemberOverview({ member, eyebrow, self }: { member: User; 
         </div>
       )}
 
-      <div className="grid" style={{ marginTop: "var(--s-8)", alignItems: "start" }}>
+      <div className="grid-fit" style={{ marginTop: "var(--s-8)", alignItems: "start" }}>
         <section className="card card--flush" aria-labelledby="completed-h">
           <div className="card__head" style={{ padding: "var(--s-4) var(--s-4) 0", marginBottom: "var(--s-2)" }}>
             <span className="card__icon" style={{ background: "var(--gold-soft)", color: "var(--gold)" }}><Trophy size={18} aria-hidden="true" /></span>

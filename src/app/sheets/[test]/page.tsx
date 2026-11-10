@@ -34,7 +34,7 @@ export default async function EditSheet({ params, searchParams }: {
       <Flash sp={await searchParams} />
       <SheetEditor key={sheet.revision} testKey={key} revision={sheet.revision} initial={contentOf(sheet)} action={saveSheet} />
 
-      <div className="grid" style={{ marginTop: "var(--s-6)", alignItems: "start" }}>
+      <div className="grid-fit" style={{ marginTop: "var(--s-6)", alignItems: "start" }}>
         <section className="card" aria-labelledby="hist-h">
           <div className="card__head">
             <span className="card__icon"><History size={18} aria-hidden="true" /></span>

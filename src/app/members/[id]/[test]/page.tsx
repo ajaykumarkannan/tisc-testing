@@ -78,7 +78,8 @@ export default async function SheetPage({ params, searchParams }: {
         <ChevronRight size={14} aria-hidden="true" />
         <span aria-current="page">{test.title}</span>
       </nav>
-      <div className="screen-only"><Flash sp={sp} /></div>
+      {/* The completed state has its own celebration card, so skip the generic "completed" banner. */}
+      <div className="screen-only"><Flash sp={completion ? { ...sp, completed: undefined } : sp} /></div>
 
       <SheetChecklist
         userId={id} testKey={testKey}
