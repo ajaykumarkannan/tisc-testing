@@ -64,7 +64,7 @@ export default async function SheetPage({ params, searchParams }: {
             )}
           </tbody>
         </table>
-        <table>
+        <table className="cand">
           <tbody>
             <tr>
               <td style={{ width: "50%" }}>Candidate Name:<div style={{ fontWeight: 700, fontSize: "1.1rem" }}>{member.name}</div></td>
@@ -118,7 +118,7 @@ export default async function SheetPage({ params, searchParams }: {
                           {hidden(it.key)}
                           <input type="text" name="note" placeholder="Note (optional)" maxLength={500} />
                           {canCredit && it.credit && (
-                            <label className="small" style={{ margin: 0 }}><input type="checkbox" name="credit" /> {CREDIT_LABEL[it.credit]}</label>
+                            <label className="small check" style={{ margin: 0 }}><input type="checkbox" name="credit" /> {CREDIT_LABEL[it.credit]}</label>
                           )}
                           <button>Sign off</button>
                         </form>
