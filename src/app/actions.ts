@@ -38,14 +38,15 @@ export async function login(f: FormData) {
        FROM login_failures WHERE at > now() - make_interval(mins => $3)`, [email, ip, LOCK_MINUTES]);
   if (recent && (recent.by_email >= MAX_PER_EMAIL || recent.by_ip >= MAX_PER_IP))
     return fail("/login", `Too many failed attempts. Try again in ${LOCK_MINUTES} minutes.`);
-  const u = await one<{ id: number; password_hash: string; must_change_password: boolean }>(
-    "SELECT id,password_hash,must_change_password FROM users WHERE lower(email)=$1", [email]);
+  const u = await one<{ id: number; password_hash: string; must_change_password: boolean; archived_at: Date | null }>(
+    "SELECT id,password_hash,must_change_password,archived_at FROM users WHERE lower(email)=$1", [email]);
   const ok = await bcrypt.compare(str(f, "password"), u?.password_hash ?? DUMMY_HASH);
   if (!u || !ok) {
     await query("INSERT INTO login_failures (email, ip) VALUES ($1,$2)", [email.slice(0, 200), ip.slice(0, 100)]);
     await query("DELETE FROM login_failures WHERE at < now() - interval '1 day'");
     return fail("/login", "Invalid email or password");
   }
+  if (u.archived_at) return fail("/login", "This account has been archived. Contact an administrator if you think that's a mistake.");
   await query("DELETE FROM login_failures WHERE email=$1", [email]);
   await startSession(u.id);
   redirect(u.must_change_password ? "/account?forced=1" : "/");
@@ -125,6 +126,7 @@ export async function signItem(f: FormData) {
   if (!canAdminister(actor, testKey)) return fail(back, "You are not authorised to administer this test");
   if (actor.id === userId) return fail(back, "You cannot sign off your own test");
   const cand = await loadUser(userId);
+  if (cand?.archivedAt) return fail(back, "This member is archived");
   if (!cand || !isEligible(test, cand)) return fail(back, "Member is not eligible for this test");
   const wantsCredit = f.get("credit") === "on";
   if (wantsCredit && !item.credit) return fail(back, "This item has no credit option");
@@ -167,6 +169,7 @@ export async function completeTest(f: FormData) {
       // Lock the candidate row so concurrent completions can't double-apply.
       await client.query("SELECT id FROM users WHERE id=$1 FOR UPDATE", [userId]);
       const cand = await loadUser(userId);
+      if (cand?.archivedAt) throw new Error("This member is archived");
       if (!cand || !isEligible(test, cand)) throw new Error("Member is not eligible for this test");
       const signed = await client.query("SELECT item_key FROM signoffs WHERE user_id=$1 AND test_key=$2", [userId, testKey]);
       if (!computeProgress(test, signed.rows.map((r) => r.item_key)).complete) throw new Error("Not every item is signed off yet");
@@ -194,6 +197,7 @@ export async function grantException(f: FormData) {
   if (userId === actor.id) return fail(back, "You can't grant an exception for yourself");
   const cand = await loadUser(userId);
   if (!cand) return fail("/members", "Unknown member");
+  if (cand.archivedAt) return fail(back, "This member is archived");
   const target = RULES_BY_KEY[testKey].grants.rank!;
   if (RANKS.indexOf(cand.rank) >= RANKS.indexOf(target)) return fail(back, "Member already holds that rating");
   await query(
@@ -224,7 +228,7 @@ async function setTracking(f: FormData, on: boolean) {
   if (!Object.hasOwn(RULES_BY_KEY, testKey) || !Number.isInteger(userId)) return fail("/my-tests", "Unknown test");
   if (userId === actor.id) return fail(back, "You can't track your own test");
   if (on) {
-    if (!(await one("SELECT 1 FROM users WHERE id=$1", [userId]))) return fail("/my-tests", "Unknown member");
+    if (!(await one("SELECT 1 FROM users WHERE id=$1 AND archived_at IS NULL", [userId]))) return fail("/my-tests", "Unknown or archived member");
     await query("INSERT INTO tracked_tests (examiner_id,user_id,test_key) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING", [actor.id, userId, testKey]);
   } else {
     await query("DELETE FROM tracked_tests WHERE examiner_id=$1 AND user_id=$2 AND test_key=$3", [actor.id, userId, testKey]);
@@ -339,6 +343,26 @@ export async function resetSheet(f: FormData) {
   fd.set("content", JSON.stringify(contentOf(def)));
   return saveSheet(fd);
 }
+
+// ---------- archiving (admin) ----------
+async function setArchived(f: FormData, archived: boolean) {
+  const admin = await requireAdminActor();
+  const id = num(f, "userId");
+  const back = str(f, "back") === "member" ? `/members/${id}` : "/admin/users";
+  if (id === admin.id) return fail(back, "You can't archive yourself");
+  if (!(await one("SELECT 1 FROM users WHERE id=$1", [id]))) return fail(back, "Unknown member");
+  if (archived) {
+    // Sign them out everywhere; stop examiners tracking them.
+    await query("UPDATE users SET archived_at=now(), session_version=session_version+1 WHERE id=$1 AND archived_at IS NULL", [id]);
+    await query("DELETE FROM tracked_tests WHERE user_id=$1", [id]);
+  } else {
+    await query("UPDATE users SET archived_at=NULL WHERE id=$1", [id]);
+  }
+  revalidatePath("/", "layout");
+  redirect(`${back}?${archived ? "archived" : "restored"}=1`);
+}
+export async function archiveMember(f: FormData) { return setArchived(f, true); }
+export async function restoreMember(f: FormData) { return setArchived(f, false); }
 
 // ---------- admin "view as" ----------
 export async function viewAs(f: FormData) {

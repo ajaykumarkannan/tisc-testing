@@ -887,3 +887,8 @@ main.container:has(> .auth) { max-width: none; padding: 0; }
   main.container { max-width: none; padding: 0; }
   .card, .sec-card { box-shadow: none !important; }
 }
+
+/* Archive / view-as actions under a user row */
+.row-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.row-actions form { margin: 0; }
+.archived-row { opacity: .85; }

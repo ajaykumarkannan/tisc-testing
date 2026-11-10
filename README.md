@@ -72,6 +72,10 @@ how many items you signed; in-progress tests come first, then completed ones.
 with a suggested temporary password; the new member must choose their own password on first sign-in. Skippers can
 only add Novices, the committee can set a starting rating (for people who passed on paper), and roles stay admin-only.
 
+**Archiving** (admins): from **Users**, archive a member who has left. They're signed out everywhere, can't sign in,
+can't be tested or tracked, and disappear from **Members** (an "Archived" link shows them). Their tests, sign-offs and
+history are kept, and **Restore** brings them back.
+
 **View as** (admins): from **Users**, an admin can see the app exactly as any member sees it. A banner shows who
 you're viewing as. Everything is read-only while viewing as someone: every action that changes data refuses.
 

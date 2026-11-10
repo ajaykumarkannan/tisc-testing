@@ -229,6 +229,20 @@ ok((await p.locator(".signed").count()) === before7e, "nothing can be signed whi
 await Promise.all([p.waitForURL(/admin\/users/), p.click("button:has-text('Stop viewing')")]);
 ok((await p.locator(".view-as-banner").count()) === 0, "stop viewing returns to admin");
 
+// 7f. archiving a member (admin): signed out, can't sign in, hidden from Members, restorable
+await p.goto(BASE + "/admin/users");
+await Promise.all([p.waitForURL(/archived=1/), p.click("button:has-text('Archive Olive Newcomer')")]);
+ok((await p.textContent("main")).includes("Restore Olive Newcomer"), "admin archived a member; shown under Archived");
+await o.goto(BASE + "/"); ok(o.url().includes("/login"), "archived member's existing session is signed out");
+await o.fill("input[name=email]", "olive@x.com"); await o.fill("input[name=password]", tmp); await o.click("button:has-text('Sign in')"); await o.waitForURL(/error=/);
+ok((await o.textContent(".flash.error")).includes("archived"), "archived member can't sign in");
+await s.goto(BASE + "/members"); ok(!(await s.textContent("main")).includes("Olive Newcomer"), "archived member hidden from Members");
+await s.goto(BASE + "/members?archived=1"); ok((await s.textContent("main")).includes("Olive Newcomer"), "archived members listed under Archived");
+await p.goto(BASE + "/admin/users");
+await Promise.all([p.waitForURL(/restored=1/), p.click("button:has-text('Restore Olive Newcomer')")]);
+await o.goto(BASE + "/login"); await o.fill("input[name=email]", "olive@x.com"); await o.fill("input[name=password]", tmp); await o.click("button:has-text('Sign in')"); await o.waitForURL(/\/account/);
+ok(true, "restored member can sign in again");
+
 // 8. helms cannot edit sheets; committee can't sign own sheet
 const h = await login("h@x.com"); await h.goto(BASE + "/sheets/hobie"); ok(h.url() === BASE + "/", "helms cannot edit sheets");
 await c.goto(BASE + "/"); await c.click("a[href$='/skipper']");

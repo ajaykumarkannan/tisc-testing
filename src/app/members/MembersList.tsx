@@ -7,7 +7,7 @@ import { RANKS, RANK_LABEL, type Endorsement, type Rank } from "@/lib/tests";
 import { Avatar, EndorsementChip, ProgressBar, RankChip } from "@/components/ui";
 
 export interface MemberVM {
-  id: number; name: string; email: string; rank: Rank; endorsements: Endorsement[];
+  id: number; name: string; email: string; rank: Rank; endorsements: Endorsement[]; archived?: boolean;
   tests: { key: string; title: string; done: number; total: number }[];
 }
 
@@ -56,7 +56,7 @@ export function MembersList({ members, initialQ, initialRank }: { members: Membe
                 <ChevronRight size={18} className="member__chev" aria-hidden="true" />
               </div>
               <div className="chips">
-                <RankChip rank={m.rank} />
+                <RankChip rank={m.rank} />{m.archived && <span className="chip chip--warn">Archived</span>}
                 {m.endorsements.map((e) => <EndorsementChip key={e} e={e} />)}
               </div>
               {m.tests.length > 0 && (

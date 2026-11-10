@@ -1,23 +1,25 @@
-import { Eye, Save, UserPlus } from "lucide-react";
+import { Archive, ArchiveRestore, Eye, Save, UserPlus } from "lucide-react";
 import { getRealUser, requireAdmin } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ENDORSEMENTS, ENDORSEMENT_LABEL, RANKS, RANK_LABEL, type Endorsement, type Rank } from "@/lib/tests";
-import { createUser, updateUser, viewAs } from "@/app/actions";
+import { archiveMember, createUser, restoreMember, updateUser, viewAs } from "@/app/actions";
 import { Flash } from "@/components/Flash";
 import { Field } from "@/components/AuthCard";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Avatar, PageHead } from "@/components/ui";
 import { TempPassword } from "@/components/TempPassword";
 import { tempPassword } from "@/lib/temp-password";
+import { fmtDate } from "@/lib/data";
 
 const ROLES = [["member", "Member"], ["committee", "Testing committee"], ["admin", "Administrator"]] as const;
 
 export default async function Users({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   await requireAdmin();
   const me = await getRealUser();
-  const users = await query<{ id: number; name: string; email: string; role: string; rank: Rank; endorsements: Endorsement[] | null }>(
-    `SELECT u.id, u.name, u.email, u.role, u.rank, array_remove(array_agg(e.endorsement), NULL) AS endorsements
+  const all = await query<{ id: number; name: string; email: string; role: string; rank: Rank; endorsements: Endorsement[] | null; archived_at: Date | null }>(
+    `SELECT u.id, u.name, u.email, u.role, u.rank, u.archived_at, array_remove(array_agg(e.endorsement), NULL) AS endorsements
        FROM users u LEFT JOIN endorsements e ON e.user_id=u.id GROUP BY u.id ORDER BY u.name`);
+  const users = all.filter((u) => !u.archived_at), archived = all.filter((u) => u.archived_at);
   return (
     <>
       <PageHead eyebrow="Administration" title="Users" sub="Add people, set roles and ratings, or reset a password. A password you set is temporary: they choose their own at next sign-in." />
@@ -69,14 +71,43 @@ export default async function Users({ searchParams }: { searchParams: Promise<Re
               </div>
             </form>
             {u.id !== me?.id && (
-              <form action={viewAs} className="view-as-form">
-                <input type="hidden" name="userId" value={u.id} />
-                <SubmitButton className="btn btn--ghost btn--sm" icon={<Eye size={15} aria-hidden="true" />}>View as {u.name}</SubmitButton>
-              </form>
+              <div className="view-as-form row-actions">
+                <form action={viewAs}>
+                  <input type="hidden" name="userId" value={u.id} />
+                  <SubmitButton className="btn btn--ghost btn--sm" icon={<Eye size={15} aria-hidden="true" />}>View as {u.name}</SubmitButton>
+                </form>
+                <form action={archiveMember}>
+                  <input type="hidden" name="userId" value={u.id} />
+                  <SubmitButton className="btn btn--ghost btn--sm" pendingText="Archiving…" icon={<Archive size={15} aria-hidden="true" />}>Archive {u.name}</SubmitButton>
+                </form>
+              </div>
             )}
           </li>))}
         </ul>
       </section>
+
+      {archived.length > 0 && (
+        <>
+          <h2 className="section-title">Archived <span className="count">{archived.length}</span></h2>
+          <p className="muted small">Archived members can’t sign in or be tested. Their tests and sign-offs are kept.</p>
+          <section className="card card--flush">
+            <ul className="users">{archived.map((u) => (
+              <li key={u.id}>
+                <div className="user-row archived-row">
+                  <div>
+                    <div className="user-row__id"><Avatar name={u.name} /><div className="grow"><strong>{u.name}</strong></div></div>
+                    <div className="user-row__email">{u.email} · {RANK_LABEL[u.rank]} · archived {fmtDate(u.archived_at!)}</div>
+                  </div>
+                  <form action={restoreMember}>
+                    <input type="hidden" name="userId" value={u.id} />
+                    <SubmitButton className="btn btn--secondary btn--sm" pendingText="Restoring…" icon={<ArchiveRestore size={15} aria-hidden="true" />}>Restore {u.name}</SubmitButton>
+                  </form>
+                </div>
+              </li>))}
+            </ul>
+          </section>
+        </>
+      )}
     </>
   );
 }

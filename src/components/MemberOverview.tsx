@@ -33,7 +33,7 @@ export async function MemberOverview({ member, eyebrow, self }: { member: User; 
           <Avatar name={member.name} size="xl" />
           <div className="grow">
             <div className="page-head__eyebrow" style={{ color: "#9ccbfb" }}>{eyebrow}</div>
-            <h1>{member.name}</h1>
+            <h1>{member.name}{member.archivedAt && <span className="chip chip--warn" style={{ marginLeft: 10, verticalAlign: "middle" }}>Archived</span>}</h1>
             <div className="hero__sub">{member.email}</div>
           </div>
           <RankChip rank={member.rank} large />

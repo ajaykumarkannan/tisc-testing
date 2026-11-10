@@ -35,7 +35,7 @@ export default async function MyTests({ searchParams }: { searchParams: Promise<
        LEFT JOIN mine m ON m.user_id=p.user_id AND m.test_key=p.test_key
        LEFT JOIN tracked t ON t.user_id=p.user_id AND t.test_key=p.test_key
        LEFT JOIN completions c ON c.user_id=p.user_id AND c.test_key=p.test_key
-      WHERE p.user_id <> $1`, [user.id]);
+      WHERE p.user_id <> $1 AND u.archived_at IS NULL`, [user.id]);
   const sheets = await getSheets();
   const ids = [...new Set(rows.map((r) => r.user_id))];
   const signed = ids.length

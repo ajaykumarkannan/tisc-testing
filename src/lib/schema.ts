@@ -94,4 +94,7 @@ CREATE TABLE IF NOT EXISTS test_exceptions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, test_key)
 );
+
+-- Archived members keep their history but can't sign in, be tested or appear in the members list.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
 `;

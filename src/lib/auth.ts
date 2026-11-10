@@ -45,6 +45,8 @@ export interface User extends Actor {
   endorsements: Endorsement[];
   mustChangePassword: boolean;
   sessionVersion: number;
+  /** When set, the member is archived: no sign-in, no testing, hidden from lists. */
+  archivedAt: Date | null;
   /** Tests opened for this member by testing-committee exception. */
   exceptions: string[];
   /** Set when an admin is viewing the app as this member. Everything is read-only then. */
@@ -85,19 +87,20 @@ export const getRealUser = cache(async (): Promise<User | null> => {
   }
   const u = await loadUser(id);
   // A password change bumps session_version, which signs out every session issued before it.
-  return u && u.sessionVersion === sv ? u : null;
+  // Archiving signs the member out as well.
+  return u && u.sessionVersion === sv && !u.archivedAt ? u : null;
 });
 
 export async function loadUser(id: number): Promise<User | null> {
-  const r = await one<{ id: number; email: string; name: string; role: Role; rank: Rank; must_change_password: boolean; session_version: number }>(
-    "SELECT id,email,name,role,rank,must_change_password,session_version FROM users WHERE id=$1", [id]);
+  const r = await one<{ id: number; email: string; name: string; role: Role; rank: Rank; must_change_password: boolean; session_version: number; archived_at: Date | null }>(
+    "SELECT id,email,name,role,rank,must_change_password,session_version,archived_at FROM users WHERE id=$1", [id]);
   if (!r) return null;
-  const { must_change_password, session_version, ...u } = r;
+  const { must_change_password, session_version, archived_at, ...u } = r;
   const [e, x] = await Promise.all([
     query<{ endorsement: Endorsement }>("SELECT endorsement FROM endorsements WHERE user_id=$1", [id]),
     query<{ test_key: string }>("SELECT test_key FROM test_exceptions WHERE user_id=$1", [id]),
   ]);
-  return { ...u, endorsements: effectiveEndorsements(u.rank, e.map((x) => x.endorsement)), exceptions: x.map((r) => r.test_key), mustChangePassword: must_change_password, sessionVersion: session_version };
+  return { ...u, endorsements: effectiveEndorsements(u.rank, e.map((x) => x.endorsement)), exceptions: x.map((r) => r.test_key), archivedAt: archived_at, mustChangePassword: must_change_password, sessionVersion: session_version };
 }
 
 /**

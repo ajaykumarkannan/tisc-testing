@@ -13,6 +13,8 @@ export function Flash({ sp }: { sp: Record<string, string | string[] | undefined
       {sp.saved && <Ok>Sheet saved.</Ok>}
       {sp.added && <Ok>Member added. Give them their email and temporary password; they’ll choose their own password when they first sign in.</Ok>}
       {sp.exception && <Ok>Exception granted. The test is now open for this member.</Ok>}
+      {sp.archived && <Ok>Member archived. They can’t sign in or be tested until restored; their history is kept.</Ok>}
+      {sp.restored && <Ok>Member restored.</Ok>}
       {sp.completed && <Ok>Test completed and status updated. Please notify TestComplete@torontosailing.com.</Ok>}
       {(sp.changed || sp.password === "changed") && <Ok>Password changed. Any other signed-in devices have been signed out.</Ok>}
     </>
