@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 import { loadUser, requireUser } from "@/lib/auth";
 import { one, query } from "@/lib/db";
 import { fmtDate, getSignoffs } from "@/lib/data";
@@ -6,10 +8,9 @@ import { canAdminister, canViewMember, isEligible, isExaminer } from "@/lib/perm
 import { computeProgress } from "@/lib/progress";
 import { getSheet, versionLabel } from "@/lib/sheets";
 import { CREDIT_LABEL, CREDIT_MARK, ENDORSEMENT_LABEL, RANK_LABEL, circled, sheetHeading, type CreditKind } from "@/lib/tests";
-import { completeTest, signItem, trackTest, unsignItem, untrackTest } from "@/app/actions";
-import { Details } from "@/components/Details";
 import { Flash } from "@/components/Flash";
-import { ProgressBar } from "@/components/Progress";
+import { SheetChecklist, type SectionVM } from "./SheetChecklist";
+import { PrintSheet } from "./PrintSheet";
 
 export default async function SheetPage({ params, searchParams }: {
   params: Promise<{ id: string; test: string }>; searchParams: Promise<Record<string, string>>;
@@ -30,9 +31,6 @@ export default async function SheetPage({ params, searchParams }: {
         WHERE c.user_id=$1 AND c.test_key=$2`, [id, testKey]),
   ]);
   const byItem = new Map(signoffs.map((s) => [s.item_key, s]));
-  // What passing this test does to the member, in words.
-  const grantText = test.grants.rank ? `promote to ${RANK_LABEL[test.grants.rank]}` : `grant ${ENDORSEMENT_LABEL[test.grants.endorsement!]} rights`;
-  const resultText = test.grants.rank ? `is now ${RANK_LABEL[test.grants.rank]}` : `now holds ${ENDORSEMENT_LABEL[test.grants.endorsement!]} rights`;
   const canTrack = isExaminer(user) && user.id !== id && !user.viewedBy;
   // Everyone testing this candidate on this test: examiners who marked "I'm testing" plus anyone who signed an item.
   const testers = await query<{ id: number; name: string; signed: number; tracking: boolean }>(
@@ -48,133 +46,63 @@ export default async function SheetPage({ params, searchParams }: {
   const eligible = isEligible(test, member);
   const canSign = !completion && eligible && canAdminister(user, testKey) && user.id !== id;
   const canCredit = canSign && user.role !== "member";
-  const hidden = (itemKey?: string) => (
-    <>
-      <input type="hidden" name="userId" value={id} />
-      <input type="hidden" name="testKey" value={testKey} />
-      {itemKey && <input type="hidden" name="itemKey" value={itemKey} />}
-    </>
-  );
+  const self = user.id === id;
+  // What passing this test does to the member, in words.
+  const grantText = test.grants.rank ? `promote to ${RANK_LABEL[test.grants.rank]}` : `grant ${ENDORSEMENT_LABEL[test.grants.endorsement!]} rights`;
+  const resultText = test.grants.rank ? `is now ${RANK_LABEL[test.grants.rank]}` : `now holds ${ENDORSEMENT_LABEL[test.grants.endorsement!]} rights`;
+
+  const sections: SectionVM[] = test.sections.map((sec) => ({
+    key: sec.key, title: sec.title, note: sec.note,
+    items: sec.items.map((it) => {
+      const s = byItem.get(it.key);
+      return {
+        key: it.key, title: it.title, details: it.details,
+        mark: it.credit && !sec.title.includes(CREDIT_MARK[it.credit]) ? CREDIT_MARK[it.credit] : "",
+        creditLabel: it.credit ? CREDIT_LABEL[it.credit] : undefined,
+        signed: s ? {
+          examiner: s.examiner_name, date: fmtDate(s.signed_at),
+          credit: s.credit ? (CREDIT_LABEL[s.credit as CreditKind] ?? s.credit) : undefined,
+          note: s.note ?? undefined,
+          canRemove: canSign && (s.examiner_id === user.id || user.role !== "member"),
+        } : undefined,
+      };
+    }),
+  }));
 
   return (
     <>
-      <div className="no-print">
-        <Flash sp={sp} />
-        {completion && (
-          <p className="flash ok passed">
-            ✓ {member.name} passed {test.title} and {resultText}. Final tester {completion.name}, {fmtDate(completion.completed_at)}.
-          </p>
+      <nav className="crumbs screen-only" aria-label="Breadcrumb">
+        {self ? <Link href="/">My progress</Link> : (
+          <><Link href="/members">Members</Link><ChevronRight size={14} aria-hidden="true" /><Link href={`/members/${id}`}>{member.name}</Link></>
         )}
-        {!completion && eligible && member.exceptions.includes(testKey) && !test.eligibleRanks.includes(member.rank) && (
-          <p className="flash ok">Opened by testing committee exception (see {member.name}’s member page).</p>
-        )}
-        {!completion && !eligible && (
-          <p className="flash error">{member.name} is not currently eligible for this test (rating: {RANK_LABEL[member.rank]}).</p>
-        )}
-        {!completion && <ProgressBar done={progress.done} total={progress.total} />}
-        <div className="testers">
-          <strong>Testing this candidate:</strong>{" "}
-          {testers.length === 0 ? <span className="muted">nobody yet</span> : testers.map((t, i) => (
-            <span key={t.id} className="tester">
-              {t.name}
-              <span className="muted small">
-                {" "}({[t.tracking && "testing", t.signed > 0 && `${t.signed} signed`].filter(Boolean).join(", ")})
-              </span>
-              {i < testers.length - 1 && ", "}
-            </span>
-          ))}
-        </div>
-        {canTrack && (
-          <form action={tracking ? untrackTest : trackTest} className="track-form">
-            {hidden()}
-            {tracking
-              ? <><span className="badge">You’re testing this candidate</span> <button className="link small">Stop tracking</button></>
-              : <button className="secondary">I’m testing this candidate</button>}
-          </form>
-        )}
-      </div>
+        <ChevronRight size={14} aria-hidden="true" />
+        <span aria-current="page">{test.title}</span>
+      </nav>
+      {/* The completed state has its own celebration card, so skip the generic "completed" banner. */}
+      <div className="screen-only"><Flash sp={completion ? { ...sp, completed: undefined } : sp} /></div>
 
-      <div className="sheet">
-        <table>
-          <tbody>
-            <tr>
-              <td className="sheet-title">{sheetHeading(test)}{test.revision > 0 && <span className="muted small"> (rev {test.revision})</span>}</td>
-              {test.minBaseWind !== undefined && <td className="wind"><b>{circled(test.minBaseWind)}</b>Min Base Wind</td>}
-            </tr>
-            {test.notes.length > 0 && (
-              <tr><td colSpan={2} className="notes">{test.notes.map((n, i) => <p key={i}>{n}</p>)}</td></tr>
-            )}
-          </tbody>
-        </table>
-        <table className="cand">
-          <tbody>
-            <tr>
-              <td style={{ width: "50%" }}>Candidate Name:<div style={{ fontWeight: 700, fontSize: "1.1rem" }}>{member.name}</div></td>
-              <td>
-                Signature of final tester &amp; date of completion:
-                {completion ? (
-                  <div className="signed"><span className="who">{completion.name}</span> · {fmtDate(completion.completed_at)}
-                    <div className="small muted">Sheet {completion.sheet_version}</div></div>
-                ) : canSign ? (
-                  <form action={completeTest} className="sig-form" style={{ marginTop: 6 }}>
-                    {hidden()}
-                    <button disabled={!progress.complete}>Complete test &amp; {grantText}</button>
-                    <span className="small muted">Signs you as final tester{progress.complete ? ` and updates ${member.name}’s status.` : "."}</span>
-                    {!progress.complete && <span className="small muted">{progress.total - progress.done} item(s) still to sign</span>}
-                  </form>
-                ) : null}
-                <div className="small">(please notify TestComplete@torontosailing.com)</div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <SheetChecklist
+        userId={id} testKey={testKey}
+        candidate={member.name} candidateRank={RANK_LABEL[member.rank]}
+        testTitle={test.title} heading={sheetHeading(test)} revision={test.revision}
+        wind={test.minBaseWind !== undefined ? circled(test.minBaseWind) : undefined}
+        notes={test.notes} sections={sections}
+        done={progress.done} total={progress.total}
+        canSign={canSign} canCredit={canCredit}
+        ineligible={!completion && !eligible ? `${member.name} is not currently eligible for this test (rating: ${RANK_LABEL[member.rank]}).` : undefined}
+        grants={test.grants.rank ? `promoted to ${RANK_LABEL[test.grants.rank]}` : `given ${ENDORSEMENT_LABEL[test.grants.endorsement!]} rights`}
+        grantText={grantText} resultText={resultText}
+        completion={completion ? { name: completion.name, date: fmtDate(completion.completed_at), version: completion.sheet_version } : undefined}
+        version={versionLabel(test)}
+        exception={!completion && eligible && member.exceptions.includes(testKey) && !test.eligibleRanks.includes(member.rank)
+          ? `Opened by testing committee exception (see ${member.name}’s member page).` : undefined}
+        track={canTrack ? { on: tracking } : undefined}
+        fresh={!!sp.completed}
+        testers={testers.map((t) => ({ id: t.id, name: t.name, note: [t.tracking && "testing", t.signed > 0 && `${t.signed} signed`].filter(Boolean).join(", ") }))}
+      />
 
-        {test.sections.map((sec) => (
-          <table key={sec.key} className="sec">
-            <thead>
-              <tr>
-                <th>{sec.title}{sec.note && <span className="note">{sec.note}</span>}</th>
-                <th className="sig-col">Examiner signature &amp; date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sec.items.map((it) => {
-                const s = byItem.get(it.key);
-                const mark = it.credit && !sec.title.includes(CREDIT_MARK[it.credit]) ? ` ${CREDIT_MARK[it.credit]}` : "";
-                return (
-                  <tr key={it.key}>
-                    <td><div className="item-title">{it.title}{mark}</div><Details lines={it.details} /></td>
-                    <td className="sig-col">
-                      {s ? (
-                        <div className="signed">
-                          <span className="who">{s.examiner_name}</span> · {fmtDate(s.signed_at)}
-                          {s.credit && <div className="small">{CREDIT_LABEL[s.credit as CreditKind] ?? s.credit}</div>}
-                          {s.note && <div className="small muted">“{s.note}”</div>}
-                          {canSign && (s.examiner_id === user.id || user.role !== "member") && (
-                            <form action={unsignItem} className="no-print" style={{ marginTop: 4 }}>
-                              {hidden(it.key)}<button className="link small">Remove sign-off</button>
-                            </form>
-                          )}
-                        </div>
-                      ) : canSign ? (
-                        <form action={signItem} className="sig-form">
-                          {hidden(it.key)}
-                          <input type="text" name="note" placeholder="Note (optional)" maxLength={500} />
-                          {canCredit && it.credit && (
-                            <label className="small check" style={{ margin: 0 }}><input type="checkbox" name="credit" /> {CREDIT_LABEL[it.credit]}</label>
-                          )}
-                          <button>Sign off</button>
-                        </form>
-                      ) : null}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ))}
-      </div>
-      <p className="muted small no-print">Sheet version {versionLabel(test)}. Sign-offs record the examiner and date.</p>
+      <PrintSheet test={test} candidate={member.name} sections={sections}
+        completion={completion ? { name: completion.name, date: fmtDate(completion.completed_at) } : undefined} />
     </>
   );
 }

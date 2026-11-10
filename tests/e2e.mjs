@@ -100,9 +100,14 @@ const s = await login("s@x.com");
 await s.goto(BASE + nHelmsLink);
 ok((await s.locator("button:has-text('Sign off')").count()) === 20, "skipper sees 20 sign-off buttons on Helms sheet");
 ok((await s.locator("input[name=credit]").count()) === 0, "skipper can't record credits");
+await s.locator("button:has-text('Add note')").first().click(); // the note field is revealed on demand
 await s.locator("input[name=note]").first().fill("Good dock approach");
 await s.locator("button:has-text('Sign off')").first().click();
 await s.waitForSelector("text=Good dock approach"); ok(true, "skipper signed an item with note");
+await s.click("button:has-text('Remaining only')");
+ok((await s.locator(".item.signed").count()) === 0 && (await s.locator("button:has-text('Sign off')").count()) === 19,
+  "'Remaining only' filter hides signed items");
+await s.click("button:has-text('Remaining only')");
 await s.goto(`${BASE}/members/${hid}/sr_helms`);
 ok((await s.locator("button:has-text('Sign off')").count()) === 0, "skipper cannot administer Senior Helms");
 
@@ -137,7 +142,10 @@ for (let guard = 0; (await signBtn.count()) > 0 && guard < 40; guard++) {
 }
 ok((await signBtn.count()) === 0, "committee signed all remaining items");
 await c.screenshot({ path: OUT + "/helms-sheet-signed.png", fullPage: true });
-await Promise.all([c.waitForURL(/completed=1/), c.click("button:has-text('Complete test')")]);
+await c.click("button:has-text('Complete test')");
+await c.waitForSelector("dialog[open]");
+ok(!c.url().includes("completed=1") && (await c.textContent("dialog[open]")).includes("Nina Novice"), "Complete test asks for confirmation first");
+await Promise.all([c.waitForURL(/completed=1/), c.click("dialog[open] button:has-text('Confirm and sign')")]);
 ok((await c.textContent(".sheet")).includes("Cora Committee"), "test completed with final tester signature");
 ok((await c.textContent(".passed")).includes("Nina Novice passed Helms and is now Helms"), "sheet confirms the status change");
 const ts = await c.textContent(".testers");
@@ -151,7 +159,7 @@ ok(nb2.includes("Laser Helms"), "Laser Helms offered once they are Helms");
 // 7. committee edits hobie sheet
 await c.goto(BASE + "/sheets/hobie");
 await c.locator(".ed-item input[aria-label='Item title']").nth(1).fill("UNDERSTANDS TISC SAILING REGULATIONS (HOBIE)");
-await c.locator(".ed-section").nth(1).locator("button:has-text('+ Add item')").click();
+await c.locator(".ed-section").nth(1).locator("button:has-text('Add item')").click();
 await c.locator(".ed-item input[aria-label='Item title']").nth(2).fill("NEW HOBIE CHECK");
 await Promise.all([c.waitForURL(/saved=1/), c.click("button:has-text('Save as revision 1')")]);
 await c.waitForSelector("text=Sheet saved.");

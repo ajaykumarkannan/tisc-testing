@@ -1,21 +1,24 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { UserPlus } from "lucide-react";
 import { signup } from "../actions";
 import { Flash } from "@/components/Flash";
+import { AuthCard, Field } from "@/components/AuthCard";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function SignupPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   if (process.env.ALLOW_SIGNUP !== "true") notFound();
   const sp = await searchParams;
   return (
-    <div className="card" style={{ maxWidth: 380, margin: "40px auto" }}>
-      <h1>Create account</h1>
-      <p className="muted">New accounts start as Novice. An administrator can update your rating.</p>
+    <AuthCard title="Create account" sub="New accounts start as Novice. An administrator can update your rating."
+      foot={<>Already have an account? <Link href="/login">Sign in</Link></>}>
       <Flash sp={sp} />
       <form action={signup}>
-        <label><span>Full name</span><input name="name" required style={{ width: "100%" }} /></label>
-        <label><span>Email</span><input name="email" type="email" required style={{ width: "100%" }} /></label>
-        <label><span>Password (8+ characters)</span><input name="password" type="password" minLength={8} required style={{ width: "100%" }} /></label>
-        <button>Create account</button>
+        <Field label="Full name"><input className="input" name="name" required autoComplete="name" /></Field>
+        <Field label="Email"><input className="input" name="email" type="email" required autoComplete="email" /></Field>
+        <Field label="Password" hint="8 or more characters."><input className="input" name="password" type="password" minLength={8} required autoComplete="new-password" /></Field>
+        <SubmitButton className="btn btn--primary btn--lg btn--block" pendingText="Creating…" icon={<UserPlus size={20} aria-hidden="true" />}>Create account</SubmitButton>
       </form>
-    </div>
+    </AuthCard>
   );
 }
