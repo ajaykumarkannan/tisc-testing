@@ -600,7 +600,7 @@ main.container.narrow { max-width: 760px; }
 @media (max-width: 639px) {
   .sheet-bar { padding: var(--s-2) var(--s-4) var(--s-3); }
   .sheet-bar__inner { gap: var(--s-2) var(--s-3); }
-  .sheet-bar__who { flex-basis: calc(100% - 110px); }
+  .sheet-bar__who { flex-basis: calc(100% - 170px); }
   .sheet-bar__progress { order: 3; flex-basis: 100%; }
   .sheet-bar__actions .btn-label { display: none; }
   .sheet-bar__actions .btn { width: var(--tap); padding: 0; }
@@ -625,7 +625,6 @@ main.container.narrow { max-width: 760px; }
 .sheet-cand__value { font-weight: 700; margin-top: 2px; overflow-wrap: anywhere; }
 @media (max-width: 479px) { .sheet-cand { grid-template-columns: 1fr; } .wind { min-width: 72px; } .wind b { font-size: 1.7rem; } }
 
-<<<<<<< HEAD
 .sec-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
 .sec-card__head {
   display: flex; align-items: center; gap: var(--s-3); padding: var(--s-4) var(--s-5);
@@ -784,6 +783,46 @@ main.container.narrow { max-width: 760px; }
   .user-row__fields { grid-template-columns: 1fr 1fr auto 1fr auto; }
 }
 
+
+/* ---------- 10b. Merged features: view-as, My tests, testers, temp passwords ---------- */
+.view-as-banner {
+  position: sticky; top: 0; z-index: 40; background: repeating-linear-gradient(-45deg, #f6b73c 0 14px, #f3ad26 14px 28px);
+  color: #2b1d00; border-bottom: 2px solid #c98a10; box-shadow: 0 2px 10px rgba(0, 0, 0, .18);
+}
+.view-as-banner__inner { max-width: 1160px; margin: 0 auto; padding: var(--s-2) var(--s-4); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--s-2) var(--s-3); font-weight: 600; font-size: var(--fs-sm); }
+.view-as-banner form { margin: 0; }
+.view-as-banner__btn { --btn-bg: #2b1d00; --btn-ink: #fff4d6; --btn-hover: #4a3300; }
+.view-as-banner__btn:focus-visible { box-shadow: 0 0 0 3px #fff; }
+body:has(.view-as-banner) .sheet-bar { top: 52px; }
+.view-as-form { margin: 0; padding: 0 var(--s-4) var(--s-3); display: flex; justify-content: flex-end; }
+
+.my-test {
+  position: relative; display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-4);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-xs);
+  transition: border-color .15s, box-shadow .15s;
+}
+.my-test:hover { border-color: color-mix(in srgb, var(--primary) 35%, var(--line)); box-shadow: var(--shadow-sm); }
+.my-test:focus-within { box-shadow: var(--focus-ring); }
+.my-test__foot { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); padding-top: var(--s-3); border-top: 1px solid var(--line); }
+.my-test__foot form { margin: 0; }
+
+.testers { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); font-size: var(--fs-sm); }
+.testers__label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; color: var(--muted); margin-right: var(--s-1); }
+.tester { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 3px; border-radius: var(--r-pill); background: var(--surface-2); border: 1px solid var(--line); font-weight: 600; }
+.tester .avatar { --size: 24px; }
+.track-form { margin: 0; display: contents; }
+.track-on { --btn-bg: var(--accent-soft) !important; --btn-ink: var(--accent-ink) !important; --btn-line: color-mix(in srgb, var(--accent) 45%, transparent) !important; }
+
+.temp-password { display: flex; gap: var(--s-2); align-items: center; }
+.temp-password .input { flex: 1 1 auto; min-width: 0; letter-spacing: .02em; }
+.temp-password .btn { flex: none; padding: 0 var(--s-3); }
+.user-row__fields .temp-password .btn span { display: none; }
+.user-row__fields .temp-password .btn { width: var(--tap); padding: 0; }
+.user-row__ends { border: 0; padding: 0; margin: 0; min-width: 0; }
+
+.passed { font-weight: 600; color: var(--ink) !important; }
+main.container:has(> .auth) { max-width: none; padding: 0; }
+
 /* ---------- 11. Motion preferences ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
@@ -816,12 +855,3 @@ main.container.narrow { max-width: 760px; }
   main.container { max-width: none; padding: 0; }
   .card, .sec-card { box-shadow: none !important; }
 }
-=======
-/* Admin "view as" banner */
-.view-as-banner { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: center; padding: 8px 16px; background: #fff4d6; color: #5c4400; border-bottom: 1px solid #e8cf86; }
-.view-as-banner form { margin: 0; }
-.view-as-form { padding: 0 8px 8px; margin: 0; }
-.track-form { margin: 8px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.my-test { display: flex; flex-direction: column; gap: 8px; }
-.testers { margin: 8px 0; line-height: 1.6; }
->>>>>>> main

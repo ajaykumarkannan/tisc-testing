@@ -21,7 +21,7 @@ type Props = {
   testTitle: string; heading: string; revision: number; wind?: string; notes: string[];
   sections: SectionVM[]; done: number; total: number; canSign: boolean; canCredit: boolean;
   ineligible?: string; grants: string; completion?: { name: string; date: string; version: string }; version: string;
-  track?: { on: boolean }; fresh?: boolean; testers: { id: number; name: string; note: string }[];
+  grantText: string; resultText: string; track?: { on: boolean }; fresh?: boolean; testers: { id: number; name: string; note: string }[];
 };
 
 /** Wide screens show item details expanded by default; phones keep them collapsed. */
@@ -194,8 +194,8 @@ export function SheetChecklist(p: Props) {
               <span className="celebrate__badge"><PartyPopper size={30} aria-hidden="true" /></span>
               <div style={{ flex: "1 1 240px", minWidth: 0 }}>
                 <h2>Test complete</h2>
-                <p>{p.candidate} passed the {p.testTitle} test and has been {p.grants}.</p>
-                <p className="signed small">Final tester <span className="who">{p.completion.name}</span> · {p.completion.date} · sheet {p.completion.version}</p>
+                <p className="passed">{p.candidate} passed {p.testTitle} and {p.resultText}. Final tester <span className="who">{p.completion.name}</span>, {p.completion.date}.</p>
+                <p className="small muted">Sheet {p.completion.version}</p>
                 <a className="celebrate__mail" href={`mailto:TestComplete@torontosailing.com?subject=${encodeURIComponent(`${p.testTitle} test complete: ${p.candidate}`)}`}>
                   <Mail size={16} aria-hidden="true" />Please notify TestComplete@torontosailing.com
                 </a>
@@ -277,9 +277,11 @@ export function SheetChecklist(p: Props) {
             {p.canSign ? (
               <div className="row">
                 <button type="button" className="btn btn--success btn--lg" disabled={!complete} onClick={() => dialog.current?.showModal()}>
-                  <Flag size={20} aria-hidden="true" />Complete test
+                  <Flag size={20} aria-hidden="true" />Complete test &amp; {p.grantText}
                 </button>
-                <span className="small muted">{complete ? "Every item is signed. You’ll sign as final tester." : `${left} item${left === 1 ? "" : "s"} still to sign`}</span>
+                <span className="small muted">
+                  {complete ? `Signs you as final tester and updates ${p.candidate}’s status.` : `${left} item${left === 1 ? "" : "s"} still to sign. Signs you as final tester.`}
+                </span>
               </div>
             ) : (
               <p className="small muted">{complete ? "All items are signed; waiting for a final tester." : `${left} item${left === 1 ? "" : "s"} still to sign before the test can be completed.`}</p>
