@@ -17,17 +17,20 @@ dated by an examiner. When every item is signed, the final tester signs the shee
 
 ```
 Novice ──(Helms test)──▶ Helms ──(Senior Helms test)──▶ Sr. Helms ──(Skipper test)──▶ Skipper
-                            │                               │
-                            └── Hobie Wave / Laser ◀────────┘   (endorsements, not ranks)
+                          │  │                              │  ▲
+                          │  └─────────(Skipper test)───────┼──┘   Helms can also go straight to Skipper
+                          └──── Hobie Wave / Laser ◀────────┘      (endorsements, not ranks)
 ```
 
 - **Rank** is one of: Novice, Helms, Sr. Helms, Skipper. It only goes up through the tests above.
 - **Endorsements** (Hobie, Laser) are extra rights earned by their own tests. They are independent of rank.
   - Helms and Sr. Helms can earn Hobie or Laser. **Skippers automatically hold both Laser and Hobie rights**, so
     those tests aren't offered to them; skippers have no further progression in this app.
-  - The handbook also has a **Laser-Only Helms** sheet: a full sheet for members who only want Laser rights
-    (it grants the Laser endorsement without a rank change). It's included, so novices have a Laser path.
+  - Laser Helms requires Helms status. (The handbook's separate Laser-Only Helms sheet is not offered.)
 - Per the sheets, the Hobie sheet covers the **Hobie Wave** only; the Getaway is skippers-only.
+- **Testing committee exceptions:** a committee member (or admin) can open the **Senior Helms** or **Skipper** test
+  for a member below the usual rating (e.g. a Novice) from that member's page, with an optional reason. The exception
+  records who approved it, is shown on the sheet, and can be removed until the test is completed.
 
 ### Tests (all taken from the 2026 forms)
 
@@ -35,10 +38,9 @@ Novice ──(Helms test)──▶ Helms ──(Senior Helms test)──▶ Sr. 
 |----------------|------------------------|-------------------------|------------------------|-------|
 | `helms`        | Helms                  | Novice                  | rank → Helms           | 20    |
 | `sr_helms`     | Senior Helms           | Helms                   | rank → Sr. Helms       | 9    |
-| `skipper`      | Skipper                | Sr. Helms               | rank → Skipper         | 26    |
-| `laser`        | Laser Helms            | Helms or above          | Laser endorsement      | 3     |
-| `laser_only`   | Laser-Only Helms       | none                    | Laser endorsement      | 16    |
-| `hobie`        | Hobie Wave Helms       | Helms or above          | Hobie endorsement      | 6     |
+| `skipper`      | Skipper                | Helms or Sr. Helms         | rank → Skipper         | 26    |
+| `laser`        | Laser Helms            | Helms or Sr. Helms      | Laser endorsement      | 3     |
+| `hobie`        | Hobie Wave Helms       | Helms or Sr. Helms      | Hobie endorsement      | 6     |
 
 Item counts include the PREREQUISITE rows and are checked in `tests/logic.test.ts`. The sheets are transcribed
 **verbatim** (wording, ✭/②/③/🅕 notes, Min Base Wind, PREREQUISITE rows, final-tester footer) and rendered in the
@@ -151,7 +153,7 @@ Screenshots are uploaded as a build artifact.
 
 ```
 src/lib/schema.ts        tables (applied automatically, idempotent)
-src/lib/tests.ts         the six 2026 sheets, verbatim, + progression rules
+src/lib/tests.ts         the 2026 sheets, verbatim, + progression rules
 src/lib/sheets.ts        current sheet = rules + committee edits (DB) or handbook default
 src/lib/sheet-validate.ts  validation of edited sheets
 src/lib/progress.ts      progress + completion logic

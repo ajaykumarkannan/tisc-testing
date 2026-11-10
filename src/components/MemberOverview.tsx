@@ -59,9 +59,11 @@ export async function MemberOverview({ member, eyebrow, self }: { member: User; 
 
         <div className="hero__ends">
           <span className="label">Endorsements</span>
-          {ENDORSEMENTS.map((e) => member.endorsements.includes(e)
-            ? <EndorsementChip key={e} e={e} large />
-            : <span key={e} className="chip chip--outline chip--lg">{ENDORSEMENT_LABEL[e]} · not yet</span>)}
+          {member.rank === "novice" && member.endorsements.length === 0
+            ? <span className="chip chip--outline chip--lg">None yet · open once you’re Helms</span>
+            : ENDORSEMENTS.map((e) => member.endorsements.includes(e)
+              ? <EndorsementChip key={e} e={e} large />
+              : <span key={e} className="chip chip--outline chip--lg">{ENDORSEMENT_LABEL[e]} · not yet</span>)}
         </div>
       </section>
 

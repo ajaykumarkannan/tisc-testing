@@ -87,7 +87,7 @@ await h1.context().close(); await h2.context().close(); await hOld.context().clo
 // 3. novice view
 const n = await login("n@x.com");
 const nb = await n.textContent("main");
-ok(nb.includes("Helms") && nb.includes("Laser-Only Helms") && !nb.includes("Senior Helms"), "novice sees Helms + Laser-Only only");
+ok(nb.includes("Helms") && !nb.includes("Laser") && !nb.includes("Hobie") && !nb.includes("Senior Helms"), "novice is offered only the Helms test");
 const nid = n.url(); const nHelmsLink = await n.getAttribute("a[href$='/helms']", "href");
 await n.goto(BASE + "/members"); ok(n.url() === BASE + "/", "novice cannot browse members");
 await n.goto(BASE + "/my-tests"); ok(n.url() === BASE + "/", "novice has no My tests page");
@@ -154,7 +154,7 @@ ok(ts.includes("Cora Committee (19 signed)") && ts.includes("Sam Skipper (1 sign
 // 6. novice is now helms
 await n.goto(BASE + "/"); const nb2 = await n.textContent("main");
 ok(nb2.includes("Helms") && nb2.includes("Senior Helms") && nb2.includes("Hobie Wave Helms") && nb2.includes("Completed tests"), "promoted to Helms; Sr Helms/Hobie/Laser now available");
-ok(!nb2.includes("Laser-Only"), "laser-only no longer offered");
+ok(nb2.includes("Laser Helms"), "Laser Helms offered once they are Helms");
 
 // 7. committee edits hobie sheet
 await c.goto(BASE + "/sheets/hobie");
@@ -194,6 +194,21 @@ await o.fill("input[name=email]", "olive@x.com"); await o.fill("input[name=passw
 await o.click("button:has-text('Sign in')"); await o.waitForURL(/\/account/);
 ok(true, "new member must choose their own password at first sign-in");
 const h0 = await login("h@x.com"); await h0.goto(BASE + "/members/new"); ok(h0.url() === BASE + "/", "helms cannot add members");
+
+// 7c3. testing-committee exception: open the Skipper test for a Novice
+await s.goto(BASE + "/members");
+await Promise.all([s.waitForURL(/\/members\/\d+$/), s.click("a:has-text('Olive Newcomer')")]);
+ok((await s.locator("button:has-text('Allow test by exception')").count()) === 0, "skippers can't grant exceptions");
+const oliveUrl = s.url();
+await c.goto(oliveUrl);
+await c.selectOption("select[name=testKey]", "skipper"); await c.fill("input[name=reason]", "Experienced dinghy sailor");
+await c.click("button:has-text('Allow test by exception')");
+await c.waitForSelector("text=Experienced dinghy sailor");
+const ol = await c.textContent("main");
+ok(ol.includes("Skipper") && ol.includes("Experienced dinghy sailor"), "committee opened the Skipper test for a Novice by exception");
+await Promise.all([c.waitForURL(/\/members\/\d+\/skipper/), c.click("main a[href$='/skipper']")]);
+await c.waitForSelector("text=testing committee exception");
+ok((await c.locator("button:has-text('Sign off')").count()) > 0 && (await c.textContent("main")).includes("testing committee exception"), "exception test can be signed and is labelled");
 
 // 7d. skippers already hold Laser + Hobie rights; those tests aren't offered to them
 await s.goto(BASE + "/");

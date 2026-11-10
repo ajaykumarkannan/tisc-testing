@@ -169,7 +169,7 @@ const srHelms: Default = {
 };
 
 const skipper: Default = {
-  key: "skipper", sheetVersion: "2026", eligibleRanks: ["sr_helms"], grants: { rank: "skipper" },
+  key: "skipper", sheetVersion: "2026", eligibleRanks: ["helms", "sr_helms"], grants: { rank: "skipper" }, // Helms may go straight to Skipper
   title: "Skipper", minBaseWind: 10,
   notes: [STAR_COACHING, STAR_REEF, FAST_TRACK],
   sections: [
@@ -277,50 +277,8 @@ const laser: Default = {
   ],
 };
 
-const laserOnly: Default = {
-  key: "laser_only", sheetVersion: "2026", eligibleRanks: ["novice"], grants: { endorsement: "laser" },
-  title: "Laser-Only Helms",
-  notes: [STAR_FEEDBACK + "."],
-  sections: [
-    section("SECTION A: SAILING SKILLS", [
-      item("LEAVES FROM AND RETURNS TO BEACH", [
-        "Safely leave the beach taking into account traffic",
-        "Return to the beach, stopping the boat without colliding with  other boats or running aground",
-      ]),
-      item("KNOWS POINTS OF SAIL", [
-        "Demonstrate the following points of sail: close-haul, close reach, broad reach, beam reach, run",
-        "Demonstrate appropriate sail trim for each point of sail",
-        "Demonstrates ability to navigate to different locations using appropriate points of sail",
-      ]),
-      item("TACKS, GYBES AND BEATS TO WINDWARD", [
-        "Tack without oversteering more than 20°, return to close-hauled course within 20 seconds of completing tack",
-        "Gybe while maintaining a flat or leeward heel without oversteering more than 20°, and return to a run within 20 seconds of completing the gybe",
-        "Demonstrates telltale reading and is able to maintain a close-hauled course through wind shifts",
-      ]),
-      item("MANEUVERS BOAT OUT OF IRONS", ["Demonstrates how to get out of irons by sculling"]),
-      CLOSE_QUARTERS(),
-    ]),
-    section("SECTION B: CAPSIZE RECOVERY", [
-      item("RECOVER FROM A CAPSIZE OF A FULLY TURTLED BOAT", [
-        "Turn boat into the wind",
-        "Right the boat in a timely manner for the prevailing conditions without re-capsizing",
-        "Re-enter the boat without re-capsizing",
-        "Bail the boat using auto-bailers",
-      ]),
-    ]),
-    section("SECTION C: CLUB KNOWLEDGE & SAFETY", [
-      item("UNDERSTANDS TISC SAILING REGULATIONS", ["Explain when and where a Laser Helms can sail"]),
-      ROW(), SAFETY(), HYPO(),
-    ]),
-    section("SECTION D: BOAT KNOWLEDGE", [
-      CARE_OF_FLEET(),
-      item("RIGGING AND DERIGGING", ["Rig and derig a Laser  for sailing, unassisted"]),
-      SAFETY_EQUIP(),
-      item("BOAT TERMINOLOGY", ["Name the three sides and three corners of the sail", "Name at least 10 major boat parts, at the discretion of the examiner"]),
-      KNOTS(), THROW(),
-    ]),
-  ],
-};
+// Note: the handbook also has a "Laser-Only Helms" sheet for non-Helms. TISC's progression requires Helms
+// status for Laser rights, so that sheet is intentionally not offered in the app.
 
 const hobie: Default = {
   key: "hobie", sheetVersion: "2026", eligibleRanks: ["helms", "sr_helms"], grants: { endorsement: "hobie" }, // skippers already hold Hobie rights
@@ -362,7 +320,7 @@ const hobie: Default = {
   ],
 };
 
-export const DEFAULT_TESTS: Default[] = [helms, srHelms, skipper, laser, laserOnly, hobie];
+export const DEFAULT_TESTS: Default[] = [helms, srHelms, skipper, laser, hobie];
 export const TEST_KEYS = DEFAULT_TESTS.map((t) => t.key);
 export const RULES_BY_KEY: Record<string, TestRules> = Object.fromEntries(
   DEFAULT_TESTS.map(({ key, sheetVersion, eligibleRanks, grants }) => [key, { key, sheetVersion, eligibleRanks, grants }]));

@@ -10,7 +10,13 @@ export interface Candidate {
   id: number;
   rank: Rank;
   endorsements: Endorsement[];
+  /** Tests the testing committee has allowed by exception (see EXCEPTION_TESTS). */
+  exceptions?: string[];
 }
+
+/** Tests the testing committee may open by exception to a member below the usual rating (e.g. a Novice). */
+export const EXCEPTION_TESTS = ["sr_helms", "skipper"];
+export const canGrantExceptions = (a: Actor) => a.role === "admin" || a.role === "committee";
 
 /**
  * Which tests a skipper may administer. Committee members and admins may administer all tests.
@@ -49,8 +55,9 @@ export const canEditSheets = (a: Actor) => a.role === "admin" || a.role === "com
 
 /** Can this candidate currently take (or continue) this test? */
 export function isEligible(test: TestRules, c: Candidate): boolean {
-  if (!test.eligibleRanks.includes(c.rank)) return false;
   const { rank, endorsement } = test.grants;
+  const byException = EXCEPTION_TESTS.includes(test.key) && !!c.exceptions?.includes(test.key);
+  if (!test.eligibleRanks.includes(c.rank) && !byException) return false;
   if (endorsement && c.endorsements.includes(endorsement)) return false;
   if (rank && RANKS.indexOf(c.rank) >= RANKS.indexOf(rank)) return false;
   return true;

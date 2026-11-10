@@ -45,6 +45,8 @@ export interface User extends Actor {
   endorsements: Endorsement[];
   mustChangePassword: boolean;
   sessionVersion: number;
+  /** Tests opened for this member by testing-committee exception. */
+  exceptions: string[];
   /** Set when an admin is viewing the app as this member. Everything is read-only then. */
   viewedBy?: { id: number; name: string };
 }
@@ -91,8 +93,11 @@ export async function loadUser(id: number): Promise<User | null> {
     "SELECT id,email,name,role,rank,must_change_password,session_version FROM users WHERE id=$1", [id]);
   if (!r) return null;
   const { must_change_password, session_version, ...u } = r;
-  const e = await query<{ endorsement: Endorsement }>("SELECT endorsement FROM endorsements WHERE user_id=$1", [id]);
-  return { ...u, endorsements: effectiveEndorsements(u.rank, e.map((x) => x.endorsement)), mustChangePassword: must_change_password, sessionVersion: session_version };
+  const [e, x] = await Promise.all([
+    query<{ endorsement: Endorsement }>("SELECT endorsement FROM endorsements WHERE user_id=$1", [id]),
+    query<{ test_key: string }>("SELECT test_key FROM test_exceptions WHERE user_id=$1", [id]),
+  ]);
+  return { ...u, endorsements: effectiveEndorsements(u.rank, e.map((x) => x.endorsement)), exceptions: x.map((r) => r.test_key), mustChangePassword: must_change_password, sessionVersion: session_version };
 }
 
 /**

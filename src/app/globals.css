@@ -820,6 +820,12 @@ body:has(.view-as-banner) .sheet-bar { top: 52px; }
 .user-row__fields .temp-password .btn { width: var(--tap); padding: 0; }
 .user-row__ends { border: 0; padding: 0; margin: 0; min-width: 0; }
 
+.exceptions__list { margin: 0 calc(var(--s-5) * -1) var(--s-4); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.exceptions__list > li { padding-left: var(--s-5); padding-right: var(--s-5); }
+.exceptions__form { display: grid; gap: var(--s-3); grid-template-columns: minmax(160px, 1fr) minmax(200px, 2fr) auto; align-items: end; }
+.exceptions__form .field { margin: 0; }
+@media (max-width: 639px) { .exceptions__form { grid-template-columns: 1fr; } }
+@media (max-width: 479px) { .exceptions__list { margin-left: calc(var(--s-4) * -1); margin-right: calc(var(--s-4) * -1); } }
 .passed { font-weight: 600; color: var(--ink) !important; }
 main.container:has(> .auth) { max-width: none; padding: 0; }
 

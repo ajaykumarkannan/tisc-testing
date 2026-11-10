@@ -3,7 +3,7 @@
 import { useRef, useState, useSyncExternalStore } from "react";
 import {
   BookmarkCheck, BookmarkPlus, Check, ChevronDown, CircleCheck, Flag, ListFilter, Lock, Mail, MessageSquarePlus, MessageSquareText,
-  PartyPopper, PenLine, Printer, TriangleAlert, Undo2, X,
+  PartyPopper, PenLine, ShieldCheck, Printer, TriangleAlert, Undo2, X,
 } from "lucide-react";
 import { completeTest, signItem, trackTest, unsignItem, untrackTest } from "@/app/actions";
 import { Details, detailCount } from "@/components/Details";
@@ -21,7 +21,7 @@ type Props = {
   testTitle: string; heading: string; revision: number; wind?: string; notes: string[];
   sections: SectionVM[]; done: number; total: number; canSign: boolean; canCredit: boolean;
   ineligible?: string; grants: string; completion?: { name: string; date: string; version: string }; version: string;
-  grantText: string; resultText: string; track?: { on: boolean }; fresh?: boolean; testers: { id: number; name: string; note: string }[];
+  grantText: string; exception?: string; resultText: string; track?: { on: boolean }; fresh?: boolean; testers: { id: number; name: string; note: string }[];
 };
 
 /** Wide screens show item details expanded by default; phones keep them collapsed. */
@@ -204,6 +204,7 @@ export function SheetChecklist(p: Props) {
           </section>
         )}
 
+        {p.exception && <div className="flash info" role="status"><ShieldCheck size={18} aria-hidden="true" /><span>{p.exception}</span></div>}
         {p.ineligible && <div className="flash error" role="status"><TriangleAlert size={18} aria-hidden="true" /><span>{p.ineligible}</span></div>}
 
         <section className="card sheet-intro" aria-label="Sheet">

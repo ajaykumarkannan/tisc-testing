@@ -93,6 +93,8 @@ export default async function SheetPage({ params, searchParams }: {
         grantText={grantText} resultText={resultText}
         completion={completion ? { name: completion.name, date: fmtDate(completion.completed_at), version: completion.sheet_version } : undefined}
         version={versionLabel(test)}
+        exception={!completion && eligible && member.exceptions.includes(testKey) && !test.eligibleRanks.includes(member.rank)
+          ? `Opened by testing committee exception (see ${member.name}’s member page).` : undefined}
         track={canTrack ? { on: tracking } : undefined}
         fresh={!!sp.completed}
         testers={testers.map((t) => ({ id: t.id, name: t.name, note: [t.tracking && "testing", t.signed > 0 && `${t.signed} signed`].filter(Boolean).join(", ") }))}
