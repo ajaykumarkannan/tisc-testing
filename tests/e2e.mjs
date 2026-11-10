@@ -103,6 +103,7 @@ ok((await s.locator("button:has-text('Sign off')").count()) === 0, "skipper cann
 await s.click("button:has-text('testing this candidate')");
 await s.waitForSelector("text=You’re testing this candidate");
 ok(true, "skipper marked a candidate as testing them");
+ok((await s.textContent(".testers")).includes("Sam Skipper (testing)"), "sheet lists who is testing the candidate");
 await s.goto(BASE + "/my-tests");
 const mt = await s.textContent("main");
 ok(mt.includes("Nina Novice") && mt.includes("You signed 1 item"), "My tests lists a candidate I signed for");
@@ -130,6 +131,8 @@ ok((await signBtn.count()) === 0, "committee signed all remaining items");
 await c.screenshot({ path: OUT + "/helms-sheet-signed.png", fullPage: true });
 await Promise.all([c.waitForURL(/completed=1/), c.click("button:has-text('Complete test')")]);
 ok((await c.textContent(".sheet")).includes("Cora Committee"), "test completed with final tester signature");
+const ts = await c.textContent(".testers");
+ok(ts.includes("Cora Committee (19 signed)") && ts.includes("Sam Skipper (1 signed)"), "testers list shows each examiner's sign-off count");
 
 // 6. novice is now helms
 await n.goto(BASE + "/"); const nb2 = await n.textContent("main");

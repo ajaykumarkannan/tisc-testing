@@ -141,3 +141,4 @@ table.list { width: 100%; border-collapse: collapse; background: var(--card); } 
 .view-as-form { padding: 0 8px 8px; margin: 0; }
 .track-form { margin: 8px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .my-test { display: flex; flex-direction: column; gap: 8px; }
+.testers { margin: 8px 0; line-height: 1.6; }
