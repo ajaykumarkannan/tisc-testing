@@ -43,11 +43,11 @@ export function SheetEditor({ testKey, revision, initial, action }: Props) {
 
       {s.sections.map((sec, si) => (
         <div key={si} className="ed-section">
-          <div className="row">
+          <div className="row ed-head">
             <input className="grow" value={sec.title} aria-label="Section title" style={{ fontWeight: 700 }}
               onChange={(e) => setSection(si, (x) => ({ ...x, title: e.target.value }))} />
-            <button type="button" className="secondary" onClick={() => update((c) => ({ ...c, sections: move(c.sections, si, -1) }))}>↑</button>
-            <button type="button" className="secondary" onClick={() => update((c) => ({ ...c, sections: move(c.sections, si, 1) }))}>↓</button>
+            <button type="button" className="secondary" onClick={() => update((c) => ({ ...c, sections: move(c.sections, si, -1) }))} aria-label="Move section up">↑</button>
+            <button type="button" className="secondary" onClick={() => update((c) => ({ ...c, sections: move(c.sections, si, 1) }))} aria-label="Move section down">↓</button>
             <button type="button" className="danger" onClick={() => confirm("Delete this section and its items?") &&
               update((c) => ({ ...c, sections: c.sections.filter((_, i) => i !== si) }))}>Delete section</button>
           </div>
@@ -56,15 +56,15 @@ export function SheetEditor({ testKey, revision, initial, action }: Props) {
 
           {sec.items.map((it, ii) => (
             <div key={it.key || `new-${ii}`} className="ed-item">
-              <div className="row">
+              <div className="row ed-head">
                 <input className="grow" value={it.title} aria-label="Item title" onChange={(e) => setItem(si, ii, (x) => ({ ...x, title: e.target.value }))} />
                 <select value={it.credit ?? ""} aria-label="Automatic credit"
                   onChange={(e) => setItem(si, ii, (x) => ({ ...x, credit: (e.target.value || undefined) as Item["credit"] }))}>
                   <option value="">No automatic credit</option>
                   {CREDIT_KINDS.map((k) => <option key={k} value={k}>{CREDIT_LABEL[k]}</option>)}
                 </select>
-                <button type="button" className="secondary" onClick={() => setSection(si, (x) => ({ ...x, items: move(x.items, ii, -1) }))}>↑</button>
-                <button type="button" className="secondary" onClick={() => setSection(si, (x) => ({ ...x, items: move(x.items, ii, 1) }))}>↓</button>
+                <button type="button" className="secondary" onClick={() => setSection(si, (x) => ({ ...x, items: move(x.items, ii, -1) }))} aria-label="Move item up">↑</button>
+                <button type="button" className="secondary" onClick={() => setSection(si, (x) => ({ ...x, items: move(x.items, ii, 1) }))} aria-label="Move item down">↓</button>
                 <button type="button" className="danger" onClick={() => confirm("Delete this item? Existing sign-offs for it will no longer count.") &&
                   setSection(si, (x) => ({ ...x, items: x.items.filter((_, i) => i !== ii) }))}>Delete</button>
               </div>

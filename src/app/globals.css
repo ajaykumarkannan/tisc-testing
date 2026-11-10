@@ -12,7 +12,8 @@ h1 { font-size: 1.5rem; margin: 8px 0 16px; } h2 { font-size: 1.15rem; margin: 2
 .top a, .top .link { color: #fff; } .top .muted { color: #c7d3e0; }
 .brand { font-weight: 700; text-decoration: none; }
 nav { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; flex: 1; }
-nav .who { margin-left: auto; font-size: .9rem; }
+.top .who { font-size: .9rem; } .signout { margin: 0; }
+.mobile-only { display: none; }
 .muted { color: var(--muted); }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
 .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
@@ -48,11 +49,88 @@ table.list { width: 100%; border-collapse: collapse; background: var(--card); } 
 .sheet .signed { color: var(--ok); } .sheet .signed .who { font-weight: 700; font-family: "Segoe Script", "Brush Script MT", cursive; font-size: 1.1rem; }
 .sheet .sig-form { display: flex; flex-direction: column; gap: 6px; } .sheet .sig-form input[type=text] { width: 100%; }
 .sheet .small { font-size: .85rem; }
-@media (max-width: 640px) { .sheet .sig-col { width: auto; min-width: 0; } .sheet td, .sheet th { padding: 6px; } }
-@media print { .top, .no-print, .sig-form { display: none !important; } body { background: #fff; } .sheet { border-width: 1px; } }
 
 /* ── Sheet editor ── */
 .ed-section { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 12px; background: var(--card); }
 .ed-item { border-left: 3px solid var(--line); padding: 8px 0 8px 12px; margin: 10px 0; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .row > .grow { flex: 1; min-width: 200px; }
 .sticky { position: sticky; bottom: 0; background: var(--bg); padding: 12px 0; border-top: 1px solid var(--line); }
+.user-name .email { overflow-wrap: anywhere; }
+
+/* ── Phones: examiners sign off on the dock, one item at a time ── */
+@media screen and (max-width: 640px) {
+  main { padding: 12px; }
+  h1 { font-size: 1.35rem; }
+
+  /* Header: brand + Sign out on top, who-am-I, then the nav links as full-height tap targets. */
+  .top { gap: 0 12px; padding: 4px 12px 2px; }
+  .brand { padding: 11px 0; }
+  .signout { margin-left: auto; order: 1; }
+  .top .signout button.link { padding: 10px 0; min-height: 40px; }
+  .top .who { order: 2; flex-basis: 100%; font-size: .8rem; }
+  nav { order: 3; flex-basis: 100%; gap: 0 14px; font-size: .95rem; }
+  nav a { display: inline-block; padding: 11px 0; }
+
+  /* Comfortable tap targets; 16px text keeps iOS from zooming on focus. */
+  button, .btn, input:not([type=checkbox]):not([type=radio]), select { min-height: 44px; font-size: 16px; }
+  button { padding: 8px 14px; }
+  button.link { min-height: 40px; padding: 8px 0; }
+  input[type=checkbox] { width: 22px; height: 22px; margin: 0; flex: none; }
+  label.check { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+  .row > input:not([type=checkbox]), .row > select { flex: 1 1 140px; }
+  .grid > .card { margin-bottom: 0; }
+
+  /* Lists: wrap long emails instead of scrolling sideways; roomier links. */
+  table.list th, table.list td { padding: 8px 6px; }
+  table.list td.muted { overflow-wrap: anywhere; }
+  table.list td a { display: inline-block; padding: 11px 0; margin: -11px 0; }
+
+  /* Admin users: each user becomes a small card instead of a sideways-scrolling row. */
+  .desktop-only { display: none; }
+  .mobile-only { display: block; }
+  table.users, table.users tbody, table.users tr, table.users td { display: block; }
+  table.users tr { border-bottom: 1px solid var(--line); }
+  table.users td { border: 0; }
+  .user-row { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px 10px; padding: 12px 8px !important; }
+  .user-row > .user-name { grid-column: 1 / -1; min-width: 0; }
+  .user-row > select { width: 100%; }
+  .user-pw { grid-column: 1 / 2; }
+  .user-pw > span { font-size: .8rem; color: var(--muted); }
+  .user-pw input { width: 100% !important; }
+  .user-row > button { align-self: end; }
+  .add-user button { flex: 1 1 100%; }
+
+  /* Paper sheet: stack the examiner cell under each item so the item text gets the full width. */
+  .sheet { border-width: 1px; margin: 0 -4px 20px; }
+  .sheet td, .sheet th { padding: 8px; }
+  .sheet .sheet-title { font-size: 1.1rem; }
+  .sheet .wind { width: 84px; } .sheet .wind b { font-size: 1.6rem; }
+  .sheet table.cand, .sheet table.cand tbody, .sheet table.cand tr, .sheet table.cand td { display: block; }
+  .sheet table.cand td { width: auto !important; border: 0; border-bottom: 1px solid var(--ink); }
+  .sheet table.sec, .sheet .sec thead, .sheet .sec tbody, .sheet .sec tr, .sheet .sec th, .sheet .sec td { display: block; }
+  .sheet table.sec { margin-top: -1px; }
+  .sheet .sec tr { border-top: 1px solid var(--ink); }
+  .sheet .sec th, .sheet .sec td { border: 0; width: auto; min-width: 0; }
+  .sheet .sec thead .sig-col { display: none; }
+  .sheet .sec td.sig-col { padding-top: 0; }
+  .sheet .sec td.sig-col:empty { display: none; }
+  .sheet .sec td.sig-col > * { border-top: 1px dashed var(--line); padding-top: 8px; }
+  .sheet .sec td.sig-col > .signed::before { content: "Examiner: "; color: var(--muted); font-size: .85rem; }
+  .sheet .sig-form { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+  .sheet .sig-form input[type=text] { flex: 1 1 150px; width: auto; }
+  .sheet .sig-form label.check { order: 3; flex-basis: 100%; }
+  .sheet .sig-form button { flex: none; min-width: 104px; }
+  .sheet table.cand .sig-form button { flex: 1 1 100%; }
+
+  /* Sheet editor: titles get their own line, controls wrap underneath. */
+  .ed-section { padding: 10px; }
+  .ed-item { padding-left: 10px; }
+  .row.ed-head > input.grow { flex-basis: 100%; }
+  .row.ed-head > select { flex-basis: 100%; }
+  .ed-head > button.secondary { min-width: 48px; }
+  .ed-head > button.danger { margin-left: auto; }
+  .sticky { padding: 10px 0; }
+  .sticky button { flex: 1 1 auto; }
+}
+
+@media print { .top, .no-print, .sig-form { display: none !important; } body { background: #fff; } .sheet { border-width: 1px; } }
