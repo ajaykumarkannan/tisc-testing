@@ -12,6 +12,7 @@ import { computeProgress } from "@/lib/progress";
 import { ENDORSEMENTS, RANKS, RULES_BY_KEY, allItems, type CreditKind } from "@/lib/tests";
 import { getSheet, versionLabel } from "@/lib/sheets";
 import { validateSheet } from "@/lib/sheet-validate";
+import { validatePasswordChange } from "@/lib/password";
 
 /** The only email allowed to create the first admin account. */
 const adminEmail = () => (process.env.ADMIN_EMAIL || "commodore@torontosailing.com").trim();
@@ -37,7 +38,8 @@ export async function login(f: FormData) {
        FROM login_failures WHERE at > now() - make_interval(mins => $3)`, [email, ip, LOCK_MINUTES]);
   if (recent && (recent.by_email >= MAX_PER_EMAIL || recent.by_ip >= MAX_PER_IP))
     return fail("/login", `Too many failed attempts. Try again in ${LOCK_MINUTES} minutes.`);
-  const u = await one<{ id: number; password_hash: string }>("SELECT id,password_hash FROM users WHERE lower(email)=$1", [email]);
+  const u = await one<{ id: number; password_hash: string; must_change_password: boolean }>(
+    "SELECT id,password_hash,must_change_password FROM users WHERE lower(email)=$1", [email]);
   const ok = await bcrypt.compare(str(f, "password"), u?.password_hash ?? DUMMY_HASH);
   if (!u || !ok) {
     await query("INSERT INTO login_failures (email, ip) VALUES ($1,$2)", [email.slice(0, 200), ip.slice(0, 100)]);
@@ -46,7 +48,7 @@ export async function login(f: FormData) {
   }
   await query("DELETE FROM login_failures WHERE email=$1", [email]);
   await startSession(u.id);
-  redirect("/");
+  redirect(u.must_change_password ? "/account?forced=1" : "/");
 }
 export async function logout() {
   await endSession();
@@ -93,6 +95,23 @@ export async function setupAdmin(f: FormData) {
   if (!id) return fail("/login", "Setup has already been completed");
   await startSession(id);
   redirect("/");
+}
+
+// ---------- own account ----------
+/** Any signed-in user changes their own password. Signs out their other sessions and clears a forced change. */
+export async function changePassword(f: FormData) {
+  const me = await requireUser({ allowPendingPasswordChange: true });
+  // Trimmed like every other password field (login compares the trimmed value).
+  const [current, next, confirm] = ["current_password", "new_password", "confirm_password"].map((k) => str(f, k));
+  const err = validatePasswordChange(current, next, confirm);
+  if (err) return fail("/account", err);
+  const row = await one<{ password_hash: string }>("SELECT password_hash FROM users WHERE id=$1", [me.id]);
+  if (!row || !(await bcrypt.compare(current, row.password_hash))) return fail("/account", "Current password is incorrect");
+  await query("UPDATE users SET password_hash=$2, must_change_password=false, session_version=session_version+1 WHERE id=$1",
+    [me.id, await bcrypt.hash(next, 10)]);
+  await startSession(me.id); // re-issue this session at the new version; every other session is now invalid
+  revalidatePath("/", "layout");
+  redirect(me.mustChangePassword ? "/?password=changed" : "/account?changed=1");
 }
 
 // ---------- testing ----------
@@ -173,7 +192,8 @@ export async function createUser(f: FormData) {
   if (!name || !email.includes("@") || password.length < 8) return fail("/admin/users", "Name, valid email and 8+ character password required");
   if (!["admin", "committee", "member"].includes(role) || !RANKS.includes(rank as any)) return fail("/admin/users", "Invalid role or rank");
   const r = await one<{ id: number }>(
-    "INSERT INTO users (email,name,password_hash,role,rank) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING RETURNING id",
+    // The admin chose a temporary password, so the member must pick their own on first sign-in.
+    "INSERT INTO users (email,name,password_hash,role,rank,must_change_password) VALUES ($1,$2,$3,$4,$5,true) ON CONFLICT DO NOTHING RETURNING id",
     [email, name, await bcrypt.hash(password, 10), role, rank]);
   if (!r) return fail("/admin/users", "Email already exists");
   revalidatePath("/admin/users");
@@ -194,7 +214,10 @@ export async function updateUser(f: FormData) {
   const pw = str(f, "password");
   if (pw) {
     if (pw.length < 8) return fail("/admin/users", "Password must be 8+ characters");
-    await query("UPDATE users SET password_hash=$2 WHERE id=$1", [id, await bcrypt.hash(pw, 10)]);
+    // A password set for someone else is temporary: they must change it, and their existing sessions end.
+    await query("UPDATE users SET password_hash=$2, must_change_password=$3, session_version=session_version+1 WHERE id=$1",
+      [id, await bcrypt.hash(pw, 10), id !== admin.id]);
+    if (id === admin.id) await startSession(id); // keep the admin signed in after resetting their own password
   }
   revalidatePath("/admin/users");
 }

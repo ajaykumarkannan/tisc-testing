@@ -10,6 +10,11 @@ CREATE TABLE IF NOT EXISTS users (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower ON users (lower(email));
+-- Added later; ADD COLUMN IF NOT EXISTS upgrades existing databases.
+-- must_change_password: set when an admin creates the account or sets a password for someone.
+-- session_version: embedded in the session cookie; bumping it signs out every other session.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS endorsements (
   user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

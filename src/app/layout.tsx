@@ -21,6 +21,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {isExaminer(user) && <Link href="/members">Members</Link>}
               {canEditSheets(user) && <Link href="/sheets">Testing sheets</Link>}
               {isAdmin(user) && <Link href="/admin/users">Users</Link>}
+              <Link href="/account">Account</Link>
               <span className="muted who">{user.name} · {RANK_LABEL[user.rank]}{user.role !== "member" ? ` · ${user.role === "admin" ? "Admin" : "Testing committee"}` : ""}</span>
               <form action={logout}><button className="link">Sign out</button></form>
             </nav>

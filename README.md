@@ -99,6 +99,10 @@ Future online-administered tests (e.g. knowledge quizzes) can attach to the same
 - `pg` driver (works with Neon's pooled connection string and with any local Postgres for development).
 - Auth: email + password (`bcryptjs`), session in a signed httpOnly cookie (`jose`). No external auth service.
   Roles are read from the DB on every request, so role changes apply immediately.
+- Accounts: everyone can change their password at **Account** (`/account`). Accounts created by an admin, or given a
+  new password by an admin, are sent to `/account` until the member picks their own (`must_change_password`). Each
+  password change bumps `users.session_version`, which is in the session cookie, so other signed-in devices are
+  signed out.
 
 ## Running locally
 
@@ -128,7 +132,7 @@ Environment variables are documented in [`.env.example`](.env.example).
 
 `.github/workflows/ci.yml` runs on every push and PR: typecheck, unit tests, production build, then the e2e
 walkthrough (`tests/e2e.mjs`) against a real Postgres 17 service with headless Chrome. The walkthrough covers setup,
-user creation, novice/skipper/committee permissions, signing, credits, completion and promotion, and sheet editing.
+user creation, the forced first-login password change, novice/skipper/committee permissions, signing, credits, completion and promotion, and sheet editing.
 Screenshots are uploaded as a build artifact.
 
 ## Project layout
@@ -150,7 +154,7 @@ tests/                   unit tests (vitest) + e2e walkthrough
 - Tested against Postgres 17 locally and in CI. On Vercel it uses Neon's pooled connection.
 - No email notifications. The sheets ask for an email to `TestComplete@torontosailing.com`; this could be sent
   automatically on completion (e.g. Resend free tier).
-- No password reset by email (an admin can set a new password). Users can't change their own password yet.
+- No password reset by email. An admin can set a temporary password, which the member must change on next sign-in.
 - Imports: members are created by hand; a CSV import from the membership list would help.
 - Rank/endorsement changes by an admin are allowed directly (to bring in existing members who passed on paper).
 - Skippers may administer only the Helms test, per the stated rules. Whether they may also do Senior Helms is a
