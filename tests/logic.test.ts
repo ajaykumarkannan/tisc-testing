@@ -3,6 +3,7 @@ import { DEFAULT_TESTS as TESTS, allItems, itemCount } from "../src/lib/tests";
 import { validateSheet } from "../src/lib/sheet-validate";
 import { canAdminister, isEligible, canViewMember } from "../src/lib/permissions";
 import { computeProgress } from "../src/lib/progress";
+import { validatePasswordChange } from "../src/lib/password";
 
 describe("sheet definitions", () => {
   it("have unique item keys within each sheet and at least one item", () => {
@@ -83,5 +84,17 @@ describe("sheet editing", () => {
   it("rejects empty sections and bad wind", () => {
     expect(validateSheet({ title: "x", notes: [], sections: [{ title: "s", items: [] }] }).ok).toBe(false);
     expect(validateSheet({ ...helms, minBaseWind: 99 }).ok).toBe(false);
+  });
+});
+
+describe("password change", () => {
+  it("accepts a new 8+ character password that matches its confirmation", () => {
+    expect(validatePasswordChange("temporary1", "my-new-pass", "my-new-pass")).toBeNull();
+  });
+  it("rejects a missing current password, short or mismatched new passwords, and reuse", () => {
+    expect(validatePasswordChange("", "my-new-pass", "my-new-pass")).toMatch(/current password/);
+    expect(validatePasswordChange("temporary1", "short", "short")).toMatch(/at least 8/);
+    expect(validatePasswordChange("temporary1", "my-new-pass", "my-new-pazz")).toMatch(/don't match/);
+    expect(validatePasswordChange("temporary1", "temporary1", "temporary1")).toMatch(/different/);
   });
 });

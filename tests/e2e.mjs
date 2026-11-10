@@ -7,10 +7,28 @@ fs.mkdirSync(OUT, { recursive: true });
 const b = await chromium.launch({ executablePath: process.env.CHROME_PATH || "/usr/bin/chromium", args: ["--no-sandbox"] });
 const ok = (c, m) => { if (!c) throw new Error("FAIL: " + m); console.log("ok -", m); };
 const page = async () => { const ctx = await b.newContext({ viewport: { width: 1100, height: 900 } }); return ctx.newPage(); };
-const login = async (email, pw = "password123") => {
+// Admin-created accounts get a temporary password and must choose their own on first sign-in.
+const TEMP_PW = "password123", OWN_PW = "my-own-password";
+const passwords = {}; // email -> current password, once changed
+const changePassword = async (p, current, next, confirm = next) => {
+  await p.fill("input[name=current_password]", current);
+  await p.fill("input[name=new_password]", next); await p.fill("input[name=confirm_password]", confirm);
+  await p.click("button:has-text('Change password')");
+};
+const signIn = async (email, pw) => {
   const p = await page(); await p.goto(BASE + "/login");
   await p.fill("input[name=email]", email); await p.fill("input[name=password]", pw);
-  await Promise.all([p.waitForURL(BASE + "/"), p.click("button:has-text('Sign in')")]); return p;
+  await Promise.all([p.waitForURL((u) => u.pathname === "/" || u.pathname === "/account" || u.searchParams.has("error")), p.click("button:has-text('Sign in')")]);
+  return p;
+};
+const login = async (email) => {
+  const p = await signIn(email, passwords[email] ?? TEMP_PW);
+  if (new URL(p.url()).pathname === "/account") { // forced change: pick a new password and keep using it
+    await Promise.all([p.waitForURL(BASE + "/?password=changed"), changePassword(p, passwords[email] ?? TEMP_PW, OWN_PW)]);
+    passwords[email] = OWN_PW;
+  }
+  if (new URL(p.url()).pathname !== "/") throw new Error(`FAIL: could not sign in as ${email} (${p.url()})`);
+  return p;
 };
 
 // 1. first-time setup
@@ -32,6 +50,26 @@ for (const [name, email, role, rank] of [["Cora Committee","c@x.com","committee"
   await f.locator("button").click(); await p.waitForSelector(`input[value="${name}"]`);
 }
 ok((await p.locator("input[name=name][value]").count()) === 5, "4 users created");
+await p.goto(BASE + "/account"); ok(new URL(p.url()).pathname === "/account" && !(await p.textContent("main")).includes("set by an administrator"),
+  "first admin (from /setup) is not forced to change password");
+
+// 2b. forced password change for admin-created accounts
+const h1 = await signIn("h@x.com", TEMP_PW);
+ok(h1.url().startsWith(BASE + "/account?forced=1") && (await h1.textContent("main")).includes("set by an administrator"),
+  "admin-created user is forced to /account on first sign-in");
+await h1.goto(BASE + "/members/1"); ok(new URL(h1.url()).pathname === "/account", "other pages redirect to /account until changed");
+const h2 = await signIn("h@x.com", TEMP_PW); // a second session for the same user
+await changePassword(h1, "wrong-password", OWN_PW); await h1.waitForURL(/error=/);
+ok((await h1.textContent("main .flash[role=alert]")).includes("Current password is incorrect"), "wrong current password rejected");
+await changePassword(h1, TEMP_PW, OWN_PW, OWN_PW + "x"); await h1.waitForURL(/error=.*match/);
+ok(true, "mismatched confirmation rejected");
+await Promise.all([h1.waitForURL(BASE + "/?password=changed"), changePassword(h1, TEMP_PW, OWN_PW)]);
+ok((await h1.textContent("main")).includes("Password changed"), "password changed; user lands on My progress");
+passwords["h@x.com"] = OWN_PW;
+await h1.goto(BASE + "/account"); ok(!(await h1.textContent("main")).includes("set by an administrator"), "no longer forced after changing");
+await h2.goto(BASE + "/"); ok(h2.url().startsWith(BASE + "/login"), "other session signed out by password change");
+const hOld = await signIn("h@x.com", TEMP_PW); ok(hOld.url().includes("error="), "old temporary password no longer works");
+await h1.context().close(); await h2.context().close(); await hOld.context().close();
 
 // 3. novice view
 const n = await login("n@x.com");
@@ -98,4 +136,13 @@ await c.screenshot({ path: OUT + "/hobie-sheet-rev1.png", fullPage: true });
 const h = await login("h@x.com"); await h.goto(BASE + "/sheets/hobie"); ok(h.url() === BASE + "/", "helms cannot edit sheets");
 await c.goto(BASE + "/"); await c.click("a[href$='/skipper']");
 ok((await c.locator("button:has-text('Sign off')").count()) === 0, "committee cannot sign their own sheet");
+
+// 9. admin sets a new password for someone: their sessions end and they must change it again
+await p.goto(BASE + "/admin/users");
+const hRow = p.locator("form").filter({ has: p.locator('input[value="Hal Helms"]') });
+await hRow.locator("input[name=password]").fill("reset-by-admin"); await hRow.locator("button:has-text('Save')").click();
+await p.waitForLoadState("networkidle");
+await h.goto(BASE + "/"); ok(h.url().startsWith(BASE + "/login"), "admin password reset signs the user out");
+const hReset = await signIn("h@x.com", "reset-by-admin"); ok(hReset.url().startsWith(BASE + "/account?forced=1"), "admin-set password must be changed again");
+await p.goto(BASE + "/admin/users"); ok(new URL(p.url()).pathname === "/admin/users", "admin still signed in");
 await b.close(); console.log("ALL PASSED");
