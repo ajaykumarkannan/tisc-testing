@@ -134,3 +134,8 @@ table.list { width: 100%; border-collapse: collapse; background: var(--card); } 
 }
 
 @media print { .top, .no-print, .sig-form { display: none !important; } body { background: #fff; } .sheet { border-width: 1px; } }
+
+/* Admin "view as" banner */
+.view-as-banner { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: center; padding: 8px 16px; background: #fff4d6; color: #5c4400; border-bottom: 1px solid #e8cf86; }
+.view-as-banner form { margin: 0; }
+.view-as-form { padding: 0 8px 8px; margin: 0; }

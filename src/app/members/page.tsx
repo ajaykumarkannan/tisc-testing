@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { isExaminer } from "@/lib/permissions";
-import { ENDORSEMENT_LABEL, RANK_LABEL, RANKS, type Endorsement, type Rank } from "@/lib/tests";
+import { ENDORSEMENT_LABEL, RANK_LABEL, RANKS, effectiveEndorsements, type Endorsement, type Rank } from "@/lib/tests";
 
 export default async function Members({ searchParams }: { searchParams: Promise<{ q?: string; rank?: string }> }) {
   const user = await requireUser();
@@ -31,7 +31,7 @@ export default async function Members({ searchParams }: { searchParams: Promise<
         <tbody>{rows.map((m) => (
           <tr key={m.id}>
             <td><Link href={`/members/${m.id}`}>{m.name}</Link></td>
-            <td>{RANK_LABEL[m.rank]}{(m.endorsements ?? []).map((e) => <span key={e} className="badge" style={{ marginLeft: 6 }}>{ENDORSEMENT_LABEL[e]}</span>)}</td>
+            <td>{RANK_LABEL[m.rank]}{effectiveEndorsements(m.rank, m.endorsements ?? []).map((e) => <span key={e} className="badge" style={{ marginLeft: 6 }}>{ENDORSEMENT_LABEL[e]}</span>)}</td>
             <td className="muted">{m.email}</td>
           </tr>))}
         </tbody>

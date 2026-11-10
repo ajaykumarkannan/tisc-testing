@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_TESTS as TESTS, allItems, itemCount } from "../src/lib/tests";
+import { DEFAULT_TESTS as TESTS, allItems, itemCount, effectiveEndorsements } from "../src/lib/tests";
 import { validateSheet } from "../src/lib/sheet-validate";
 import { canAdminister, isEligible, canViewMember } from "../src/lib/permissions";
 import { computeProgress } from "../src/lib/progress";
@@ -49,7 +49,13 @@ describe("permissions", () => {
     expect(isEligible(by.hobie, c("helms"))).toBe(true);
     expect(isEligible(by.hobie, c("sr_helms", ["hobie"]))).toBe(false);
     expect(isEligible(by.laser_only, c("novice"))).toBe(true);
-    expect(isEligible(by.laser, c("skipper"))).toBe(true);
+    expect(isEligible(by.laser, c("skipper"))).toBe(false); // skippers already hold Laser rights
+    expect(isEligible(by.hobie, c("skipper"))).toBe(false);
+  });
+  it("gives skippers Laser and Hobie rights automatically", () => {
+    expect(effectiveEndorsements("skipper", [])).toEqual(["hobie", "laser"]);
+    expect(effectiveEndorsements("sr_helms", ["laser"])).toEqual(["laser"]);
+    expect(effectiveEndorsements("helms", [])).toEqual([]);
   });
 });
 

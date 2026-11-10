@@ -5,7 +5,7 @@ import { timingSafeEqual } from "node:crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { endSession, loadUser, requireAdmin, requireUser, startSession } from "@/lib/auth";
+import { endSession, getRealUser, loadUser, requireActor, requireAdminActor, startSession, startViewAs, stopViewAs } from "@/lib/auth";
 import { one, query, tx } from "@/lib/db";
 import { canAdminister, canEditSheets, isEligible } from "@/lib/permissions";
 import { computeProgress } from "@/lib/progress";
@@ -100,7 +100,7 @@ export async function setupAdmin(f: FormData) {
 // ---------- own account ----------
 /** Any signed-in user changes their own password. Signs out their other sessions and clears a forced change. */
 export async function changePassword(f: FormData) {
-  const me = await requireUser({ allowPendingPasswordChange: true });
+  const me = await requireActor({ allowPendingPasswordChange: true });
   // Trimmed like every other password field (login compares the trimmed value).
   const [current, next, confirm] = ["current_password", "new_password", "confirm_password"].map((k) => str(f, k));
   const err = validatePasswordChange(current, next, confirm);
@@ -116,7 +116,7 @@ export async function changePassword(f: FormData) {
 
 // ---------- testing ----------
 export async function signItem(f: FormData) {
-  const actor = await requireUser();
+  const actor = await requireActor();
   const [userId, testKey, itemKey] = [num(f, "userId"), str(f, "testKey"), str(f, "itemKey")];
   const back = `/members/${userId}/${testKey}`;
   const test = await getSheet(testKey);
@@ -140,7 +140,7 @@ export async function signItem(f: FormData) {
 }
 
 export async function unsignItem(f: FormData) {
-  const actor = await requireUser();
+  const actor = await requireActor();
   const [userId, testKey, itemKey] = [num(f, "userId"), str(f, "testKey"), str(f, "itemKey")];
   const back = `/members/${userId}/${testKey}`;
   if (!canAdminister(actor, testKey)) return fail(back, "Not authorised");
@@ -154,7 +154,7 @@ export async function unsignItem(f: FormData) {
 }
 
 export async function completeTest(f: FormData) {
-  const actor = await requireUser();
+  const actor = await requireActor();
   const [userId, testKey] = [num(f, "userId"), str(f, "testKey")];
   const back = `/members/${userId}/${testKey}`;
   const test = await getSheet(testKey);
@@ -186,7 +186,7 @@ export async function completeTest(f: FormData) {
 
 // ---------- admin ----------
 export async function createUser(f: FormData) {
-  await requireAdmin();
+  await requireAdminActor();
   const [name, email, password] = [str(f, "name"), str(f, "email"), str(f, "password")];
   const role = str(f, "role"), rank = str(f, "rank");
   if (!name || !email.includes("@") || password.length < 8) return fail("/admin/users", "Name, valid email and 8+ character password required");
@@ -200,7 +200,7 @@ export async function createUser(f: FormData) {
 }
 
 export async function updateUser(f: FormData) {
-  const admin = await requireAdmin();
+  const admin = await requireAdminActor();
   const id = num(f, "userId");
   const role = str(f, "role"), rank = str(f, "rank");
   if (!["admin", "committee", "member"].includes(role) || !RANKS.includes(rank as any)) return fail("/admin/users", "Invalid role or rank");
@@ -224,7 +224,7 @@ export async function updateUser(f: FormData) {
 
 // ---------- sheet editing (testing committee) ----------
 export async function saveSheet(f: FormData) {
-  const actor = await requireUser();
+  const actor = await requireActor();
   const testKey = str(f, "testKey");
   const back = `/sheets/${testKey}`;
   if (!canEditSheets(actor)) return fail("/", "Only the testing committee can edit sheets");
@@ -256,7 +256,7 @@ export async function saveSheet(f: FormData) {
 
 /** Restores the handbook text, recorded as a new revision so history is kept. */
 export async function resetSheet(f: FormData) {
-  const actor = await requireUser();
+  const actor = await requireActor();
   const testKey = str(f, "testKey");
   if (!canEditSheets(actor)) return fail("/", "Only the testing committee can edit sheets");
   const { DEFAULT_BY_KEY, contentOf } = await import("@/lib/tests");
@@ -267,4 +267,18 @@ export async function resetSheet(f: FormData) {
   fd.set("revision", String(num(f, "revision")));
   fd.set("content", JSON.stringify(contentOf(def)));
   return saveSheet(fd);
+}
+
+// ---------- admin "view as" ----------
+export async function viewAs(f: FormData) {
+  const real = await getRealUser();
+  if (!real || real.role !== "admin") return fail("/", "Only administrators can view as another member");
+  const target = await loadUser(num(f, "userId"));
+  if (!target || target.id === real.id) return fail("/admin/users", "Unknown member");
+  await startViewAs(real.id, target.id);
+  redirect("/");
+}
+export async function endViewAs() {
+  await stopViewAs();
+  redirect("/admin/users");
 }

@@ -4,9 +4,10 @@ import { SignJWT, jwtVerify } from "jose";
 import { cache } from "react";
 import { one, query } from "./db";
 import type { Actor, Role } from "./permissions";
-import type { Endorsement, Rank } from "./tests";
+import { effectiveEndorsements, type Endorsement, type Rank } from "./tests";
 
 const COOKIE = "tisc_session";
+const VIEW_AS_COOKIE = "tisc_view_as";
 const MAX_AGE = 60 * 60 * 24 * 14;
 
 function secret() {
@@ -23,7 +24,19 @@ export async function startSession(userId: number) {
   (await cookies()).set(COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: MAX_AGE });
 }
 export async function endSession() {
-  (await cookies()).delete(COOKIE);
+  const c = await cookies();
+  c.delete(COOKIE);
+  c.delete(VIEW_AS_COOKIE);
+}
+
+/** Admin "view as": a signed cookie naming the member to view as and the admin who started it. */
+export async function startViewAs(adminId: number, targetId: number) {
+  const token = await new SignJWT({ by: adminId }).setProtectedHeader({ alg: "HS256" }).setSubject(String(targetId))
+    .setIssuedAt().setExpirationTime("8h").sign(secret());
+  (await cookies()).set(VIEW_AS_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 8 * 3600 });
+}
+export async function stopViewAs() {
+  (await cookies()).delete(VIEW_AS_COOKIE);
 }
 
 export interface User extends Actor {
@@ -32,10 +45,32 @@ export interface User extends Actor {
   endorsements: Endorsement[];
   mustChangePassword: boolean;
   sessionVersion: number;
+  /** Set when an admin is viewing the app as this member. Everything is read-only then. */
+  viewedBy?: { id: number; name: string };
 }
 
-/** Re-reads the user from the DB each request so role/rank changes take effect at once. */
+/**
+ * The user the app should render as: normally the signed-in user, or, when an admin has started
+ * "view as", the member being viewed (with `viewedBy` set).
+ */
 export const getUser = cache(async (): Promise<User | null> => {
+  const real = await getRealUser();
+  if (!real || real.role !== "admin") return real;
+  const token = (await cookies()).get(VIEW_AS_COOKIE)?.value;
+  if (!token) return real;
+  try {
+    const { payload } = await jwtVerify(token, secret());
+    if (payload.by !== real.id) return real; // only the admin who started it
+    const target = await loadUser(Number(payload.sub));
+    if (!target || target.id === real.id) return real;
+    return { ...target, viewedBy: { id: real.id, name: real.name } };
+  } catch {
+    return real;
+  }
+});
+
+/** The signed-in user (never the viewed-as member). Re-read from the DB each request so role/rank changes apply at once. */
+export const getRealUser = cache(async (): Promise<User | null> => {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
   let id: number, sv: unknown;
@@ -57,7 +92,7 @@ export async function loadUser(id: number): Promise<User | null> {
   if (!r) return null;
   const { must_change_password, session_version, ...u } = r;
   const e = await query<{ endorsement: Endorsement }>("SELECT endorsement FROM endorsements WHERE user_id=$1", [id]);
-  return { ...u, endorsements: e.map((x) => x.endorsement), mustChangePassword: must_change_password, sessionVersion: session_version };
+  return { ...u, endorsements: effectiveEndorsements(u.rank, e.map((x) => x.endorsement)), mustChangePassword: must_change_password, sessionVersion: session_version };
 }
 
 /**
@@ -68,11 +103,28 @@ export async function loadUser(id: number): Promise<User | null> {
 export async function requireUser(opts: { allowPendingPasswordChange?: boolean } = {}): Promise<User> {
   const u = await getUser();
   if (!u) redirect("/login");
-  if (u.mustChangePassword && !opts.allowPendingPasswordChange) redirect("/account?forced=1");
+  if (u.mustChangePassword && !opts.allowPendingPasswordChange && !u.viewedBy) redirect("/account?forced=1");
   return u;
 }
+
+/**
+ * For server actions that change anything: the signed-in user, refusing while an admin is viewing as
+ * someone else (so nothing can be signed or edited under another member's name).
+ */
+export async function requireActor(opts: { allowPendingPasswordChange?: boolean } = {}): Promise<User> {
+  const u = await requireUser(opts);
+  if (u.viewedBy) redirect("/?error=" + encodeURIComponent(`You're viewing as ${u.name}. Stop viewing to make changes.`));
+  return u;
+}
+/** Admin pages: the rendered user must be an admin (so "view as" a member hides admin pages). */
 export async function requireAdmin(): Promise<User> {
   const u = await requireUser();
+  if (u.role !== "admin") redirect("/");
+  return u;
+}
+/** Admin actions: must be an admin and not currently viewing as someone. */
+export async function requireAdminActor(): Promise<User> {
+  const u = await requireActor();
   if (u.role !== "admin") redirect("/");
   return u;
 }

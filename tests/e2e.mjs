@@ -147,6 +147,25 @@ for (let i = 0; i < 5; i++) { await lp.goto(BASE + "/login"); await lp.fill("inp
 await lp.goto(BASE + "/login"); await lp.fill("input[name=email]", "n@x.com"); await lp.fill("input[name=password]", "password123"); await lp.click("button"); await lp.waitForURL(/error=/);
 ok((await lp.textContent(".flash.error")).includes("Too many"), "login locked after 5 failures, even with the right password");
 
+// 7d. skippers already hold Laser + Hobie rights; those tests aren't offered to them
+await s.goto(BASE + "/");
+const sk = await s.textContent("main");
+ok(sk.includes("Laser") && sk.includes("Hobie Wave") && !sk.includes("Laser Helms") && !sk.includes("Hobie Wave Helms"), "skipper shows Laser + Hobie rights and isn't offered those tests");
+
+// 7e. admin "view as" (read-only)
+await p.goto(BASE + "/admin/users");
+await Promise.all([p.waitForURL(BASE + "/"), p.click("button:has-text('View as Sam Skipper')")]);
+ok((await p.textContent(".view-as-banner")).includes("Sam Skipper"), "admin can view as a member, with banner");
+ok((await p.locator("a[href='/admin/users']").count()) === 0, "admin pages hidden while viewing as a member");
+await p.goto(`${BASE}/members/${hid}/hobie`);
+const before7e = await p.locator(".signed").count();
+const signBtn7e = p.locator("button:has-text('Sign off')");
+if (await signBtn7e.count()) { await signBtn7e.first().click(); await p.waitForURL(/error=/); }
+await p.goto(`${BASE}/members/${hid}/hobie`);
+ok((await p.locator(".signed").count()) === before7e, "nothing can be signed while viewing as");
+await Promise.all([p.waitForURL(/admin\/users/), p.click("button:has-text('Stop viewing')")]);
+ok((await p.locator(".view-as-banner").count()) === 0, "stop viewing returns to admin");
+
 // 8. helms cannot edit sheets; committee can't sign own sheet
 const h = await login("h@x.com"); await h.goto(BASE + "/sheets/hobie"); ok(h.url() === BASE + "/", "helms cannot edit sheets");
 await c.goto(BASE + "/"); await c.click("a[href$='/skipper']");
