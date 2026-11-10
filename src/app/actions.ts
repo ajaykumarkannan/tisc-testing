@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { endSession, getRealUser, loadUser, requireActor, requireAdminActor, startSession, startViewAs, stopViewAs } from "@/lib/auth";
 import { one, query, tx } from "@/lib/db";
-import { canAdminister, canEditSheets, isEligible } from "@/lib/permissions";
+import { allowedStartingRanks, canAddMembers, canAdminister, canEditSheets, isEligible } from "@/lib/permissions";
 import { computeProgress } from "@/lib/progress";
 import { ENDORSEMENTS, RANKS, RULES_BY_KEY, allItems, type CreditKind } from "@/lib/tests";
 import { getSheet, versionLabel } from "@/lib/sheets";
@@ -182,6 +182,26 @@ export async function completeTest(f: FormData) {
   }
   revalidatePath("/", "layout");
   redirect(`${back}?completed=1`);
+}
+
+// ---------- adding members (skippers, committee, admin) ----------
+export async function addMember(f: FormData) {
+  const actor = await requireActor();
+  const back = "/members/new";
+  if (!canAddMembers(actor)) return fail("/", "You can't add members");
+  const [name, email, password] = [str(f, "name"), str(f, "email"), str(f, "password")];
+  const rank = str(f, "rank") || "novice";
+  if (!name || !email.includes("@")) return fail(back, "Enter the member's name and a valid email");
+  if (password.length < 8) return fail(back, "The temporary password must be at least 8 characters");
+  if (!allowedStartingRanks(actor).includes(rank as any)) return fail(back, "You can't give that starting rating");
+  const r = await one<{ id: number }>(
+    // Always a regular member; they must choose their own password on first sign-in.
+    `INSERT INTO users (email,name,password_hash,role,rank,must_change_password) VALUES ($1,$2,$3,'member',$4,true)
+     ON CONFLICT DO NOTHING RETURNING id`,
+    [email, name, await bcrypt.hash(password, 10), rank]);
+  if (!r) return fail(back, "A member with that email already exists");
+  revalidatePath("/members");
+  redirect(`/members/${r.id}?added=1`);
 }
 
 // ---------- admin ----------

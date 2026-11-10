@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { isExaminer } from "@/lib/permissions";
+import { canAddMembers, isExaminer } from "@/lib/permissions";
 import { ENDORSEMENT_LABEL, RANK_LABEL, RANKS, effectiveEndorsements, type Endorsement, type Rank } from "@/lib/tests";
 
 export default async function Members({ searchParams }: { searchParams: Promise<{ q?: string; rank?: string }> }) {
@@ -17,7 +17,10 @@ export default async function Members({ searchParams }: { searchParams: Promise<
       GROUP BY u.id ORDER BY u.name LIMIT 200`, [q, RANKS.includes(rank as Rank) ? rank : ""]);
   return (
     <>
-      <h1>Members</h1>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <h1>Members</h1>
+        {canAddMembers(user) && <Link href="/members/new" className="btn">+ Add member</Link>}
+      </div>
       <form className="row card">
         <input name="q" defaultValue={q} placeholder="Search name or email" className="grow" />
         <select name="rank" defaultValue={rank}>

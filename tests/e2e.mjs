@@ -147,6 +147,21 @@ for (let i = 0; i < 5; i++) { await lp.goto(BASE + "/login"); await lp.fill("inp
 await lp.goto(BASE + "/login"); await lp.fill("input[name=email]", "n@x.com"); await lp.fill("input[name=password]", "password123"); await lp.click("button"); await lp.waitForURL(/error=/);
 ok((await lp.textContent(".flash.error")).includes("Too many"), "login locked after 5 failures, even with the right password");
 
+// 7c2. skippers can add members (Novice only, with a temporary password)
+await s.goto(BASE + "/members");
+await Promise.all([s.waitForURL(/members\/new/), s.click("a:has-text('Add member')")]);
+ok((await s.locator("select[name=rank]").count()) === 0, "skipper can only add Novices (no rating choice)");
+const tmp = await s.inputValue("input[name=password]");
+ok(tmp.length >= 8, "a temporary password is suggested");
+await s.fill("input[name=name]", "Olive Newcomer"); await s.fill("input[name=email]", "olive@x.com");
+await Promise.all([s.waitForURL(/added=1/), s.click("button:has-text('Add member')")]);
+ok((await s.textContent("main")).includes("Olive Newcomer") && (await s.textContent("main")).includes("Novice"), "skipper added a Novice member");
+const o = await page(); await o.goto(BASE + "/login");
+await o.fill("input[name=email]", "olive@x.com"); await o.fill("input[name=password]", tmp);
+await o.click("button:has-text('Sign in')"); await o.waitForURL(/\/account/);
+ok(true, "new member must choose their own password at first sign-in");
+const h0 = await login("h@x.com"); await h0.goto(BASE + "/members/new"); ok(h0.url() === BASE + "/", "helms cannot add members");
+
 // 7d. skippers already hold Laser + Hobie rights; those tests aren't offered to them
 await s.goto(BASE + "/");
 const sk = await s.textContent("main");

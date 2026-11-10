@@ -51,8 +51,8 @@ Hobie sailing" share one signature box, as on paper.
 | User type              | Can administer (sign off)                  | Can see                                   |
 |------------------------|--------------------------------------------|-------------------------------------------|
 | Website administrator  | everything, **plus** manage users & roles  | everything; can **view as** any member    |
-| Testing committee      | any test; **edit the testing sheets**      | all members and their sheets              |
-| Skipper                | **Helms** test only                        | all members and their sheets              |
+| Testing committee      | any test; **edit the testing sheets**; add members (any starting rating) | all members and their sheets |
+| Skipper                | **Helms** test only; add members (as Novice) | all members and their sheets            |
 | Helms / Sr. Helms      | nothing                                    | own history and progress                  |
 | Novice                 | nothing                                    | own history and progress                  |
 
@@ -61,6 +61,10 @@ Two independent properties on a user make this work: `role` (`admin` / `committe
 Rules enforced server-side: nobody can sign off (or remove sign-offs from) their own sheet; logins lock for 15
 minutes after 5 failures per email (30 per IP); only the examiner who signed an item (or the
 committee/admin) can remove a sign-off.
+
+**Adding members:** skippers, the testing committee and admins can add members from **Members → + Add member**,
+with a suggested temporary password; the new member must choose their own password on first sign-in. Skippers can
+only add Novices, the committee can set a starting rating (for people who passed on paper), and roles stay admin-only.
 
 **View as** (admins): from **Users**, an admin can see the app exactly as any member sees it. A banner shows who
 you're viewing as. Everything is read-only while viewing as someone: every action that changes data refuses.

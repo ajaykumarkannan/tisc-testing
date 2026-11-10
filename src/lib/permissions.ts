@@ -35,6 +35,15 @@ export function canViewMember(actor: Actor, memberId: number): boolean {
 
 export const isAdmin = (a: Actor) => a.role === "admin";
 
+/** Skippers, the testing committee and admins can add new members (with a temporary password). */
+export const canAddMembers = (a: Actor) => isExaminer(a);
+
+/** Starting ratings a person may give a new member: committee/admin any (e.g. passed on paper); skippers Novice only. */
+export function allowedStartingRanks(a: Actor): Rank[] {
+  if (a.role === "admin" || a.role === "committee") return [...RANKS];
+  return canAddMembers(a) ? ["novice"] : [];
+}
+
 /** Testing committee (and admins) may edit the content of the testing sheets. */
 export const canEditSheets = (a: Actor) => a.role === "admin" || a.role === "committee";
 
