@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { isExaminer } from "@/lib/permissions";
-import { ENDORSEMENT_LABEL, RANK_LABEL, RANKS, type Endorsement, type Rank } from "@/lib/tests";
+import { canAddMembers, isExaminer } from "@/lib/permissions";
+import { ENDORSEMENT_LABEL, RANK_LABEL, RANKS, effectiveEndorsements, type Endorsement, type Rank } from "@/lib/tests";
 
 export default async function Members({ searchParams }: { searchParams: Promise<{ q?: string; rank?: string }> }) {
   const user = await requireUser();
@@ -17,7 +17,10 @@ export default async function Members({ searchParams }: { searchParams: Promise<
       GROUP BY u.id ORDER BY u.name LIMIT 200`, [q, RANKS.includes(rank as Rank) ? rank : ""]);
   return (
     <>
-      <h1>Members</h1>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <h1>Members</h1>
+        {canAddMembers(user) && <Link href="/members/new" className="btn">+ Add member</Link>}
+      </div>
       <form className="row card">
         <input name="q" defaultValue={q} placeholder="Search name or email" className="grow" />
         <select name="rank" defaultValue={rank}>
@@ -31,7 +34,7 @@ export default async function Members({ searchParams }: { searchParams: Promise<
         <tbody>{rows.map((m) => (
           <tr key={m.id}>
             <td><Link href={`/members/${m.id}`}>{m.name}</Link></td>
-            <td>{RANK_LABEL[m.rank]}{(m.endorsements ?? []).map((e) => <span key={e} className="badge" style={{ marginLeft: 6 }}>{ENDORSEMENT_LABEL[e]}</span>)}</td>
+            <td>{RANK_LABEL[m.rank]}{effectiveEndorsements(m.rank, m.endorsements ?? []).map((e) => <span key={e} className="badge" style={{ marginLeft: 6 }}>{ENDORSEMENT_LABEL[e]}</span>)}</td>
             <td className="muted">{m.email}</td>
           </tr>))}
         </tbody>

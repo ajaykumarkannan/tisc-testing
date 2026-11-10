@@ -14,6 +14,11 @@ export const RANK_LABEL: Record<Rank, string> = { novice: "Novice", helms: "Helm
 export const ENDORSEMENTS: Endorsement[] = ["hobie", "laser"];
 export const ENDORSEMENT_LABEL: Record<Endorsement, string> = { hobie: "Hobie Wave", laser: "Laser" };
 
+/** Skippers automatically hold every endorsement (Laser and Hobie rights), whether or not it's stored. */
+export function effectiveEndorsements(rank: Rank, stored: readonly Endorsement[]): Endorsement[] {
+  return rank === "skipper" ? [...ENDORSEMENTS] : ENDORSEMENTS.filter((e) => stored.includes(e));
+}
+
 export type CreditKind = "cansail2" | "cansail3" | "fasttrack";
 export const CREDIT_KINDS: CreditKind[] = ["cansail2", "cansail3", "fasttrack"];
 export const CREDIT_MARK: Record<CreditKind, string> = { cansail2: "②", cansail3: "③", fasttrack: "🅕" };
@@ -262,7 +267,7 @@ const skipper: Default = {
 };
 
 const laser: Default = {
-  key: "laser", sheetVersion: "2026", eligibleRanks: ["helms", "sr_helms", "skipper"], grants: { endorsement: "laser" },
+  key: "laser", sheetVersion: "2026", eligibleRanks: ["helms", "sr_helms"], grants: { endorsement: "laser" }, // skippers already hold Laser rights
   title: "Laser Helms",
   notes: [STAR_FEEDBACK],
   sections: [
@@ -318,7 +323,7 @@ const laserOnly: Default = {
 };
 
 const hobie: Default = {
-  key: "hobie", sheetVersion: "2026", eligibleRanks: ["helms", "sr_helms", "skipper"], grants: { endorsement: "hobie" },
+  key: "hobie", sheetVersion: "2026", eligibleRanks: ["helms", "sr_helms"], grants: { endorsement: "hobie" }, // skippers already hold Hobie rights
   title: "Hobie Wave Helms",
   notes: [STAR_FEEDBACK, "✭ This test is specifically for the hobie wave; only skippers can access the hobie getaway"],
   sections: [

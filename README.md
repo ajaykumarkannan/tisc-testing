@@ -23,7 +23,8 @@ Novice ──(Helms test)──▶ Helms ──(Senior Helms test)──▶ Sr. 
 
 - **Rank** is one of: Novice, Helms, Sr. Helms, Skipper. It only goes up through the tests above.
 - **Endorsements** (Hobie, Laser) are extra rights earned by their own tests. They are independent of rank.
-  - Helms and Sr. Helms can earn Hobie or Laser. Skippers have no further progression in this app.
+  - Helms and Sr. Helms can earn Hobie or Laser. **Skippers automatically hold both Laser and Hobie rights**, so
+    those tests aren't offered to them; skippers have no further progression in this app.
   - The handbook also has a **Laser-Only Helms** sheet: a full sheet for members who only want Laser rights
     (it grants the Laser endorsement without a rank change). It's included, so novices have a Laser path.
 - Per the sheets, the Hobie sheet covers the **Hobie Wave** only; the Getaway is skippers-only.
@@ -49,9 +50,9 @@ Hobie sailing" share one signature box, as on paper.
 
 | User type              | Can administer (sign off)                  | Can see                                   |
 |------------------------|--------------------------------------------|-------------------------------------------|
-| Website administrator  | everything, **plus** manage users & roles  | everything                                |
-| Testing committee      | any test; **edit the testing sheets**      | all members and their sheets              |
-| Skipper                | **Helms** test only                        | all members and their sheets              |
+| Website administrator  | everything, **plus** manage users & roles  | everything; can **view as** any member    |
+| Testing committee      | any test; **edit the testing sheets**; add members (any starting rating) | all members and their sheets |
+| Skipper                | **Helms** test only; add members (as Novice) | all members and their sheets            |
 | Helms / Sr. Helms      | nothing                                    | own history and progress                  |
 | Novice                 | nothing                                    | own history and progress                  |
 
@@ -60,6 +61,13 @@ Two independent properties on a user make this work: `role` (`admin` / `committe
 Rules enforced server-side: nobody can sign off (or remove sign-offs from) their own sheet; logins lock for 15
 minutes after 5 failures per email (30 per IP); only the examiner who signed an item (or the
 committee/admin) can remove a sign-off.
+
+**Adding members:** skippers, the testing committee and admins can add members from **Members → + Add member**,
+with a suggested temporary password; the new member must choose their own password on first sign-in. Skippers can
+only add Novices, the committee can set a starting rating (for people who passed on paper), and roles stay admin-only.
+
+**View as** (admins): from **Users**, an admin can see the app exactly as any member sees it. A banner shows who
+you're viewing as. Everything is read-only while viewing as someone: every action that changes data refuses.
 
 The "who may administer what" matrix lives in one place (`src/lib/permissions.ts`) so the club can change it.
 

@@ -1,13 +1,16 @@
 import { requireAdmin } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ENDORSEMENTS, ENDORSEMENT_LABEL, RANKS, RANK_LABEL, type Endorsement, type Rank } from "@/lib/tests";
-import { createUser, updateUser } from "@/app/actions";
+import { createUser, updateUser, viewAs } from "@/app/actions";
 import { Flash } from "@/components/Flash";
 
 const ROLES = [["member", "Member"], ["committee", "Testing committee"], ["admin", "Administrator"]] as const;
 
+import { getRealUser } from "@/lib/auth";
+
 export default async function Users({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   await requireAdmin();
+  const me = await getRealUser();
   const users = await query<{ id: number; name: string; email: string; role: string; rank: Rank; endorsements: Endorsement[] | null }>(
     `SELECT u.id, u.name, u.email, u.role, u.rank, array_remove(array_agg(e.endorsement), NULL) AS endorsements
        FROM users u LEFT JOIN endorsements e ON e.user_id=u.id GROUP BY u.id ORDER BY u.name`);
@@ -46,6 +49,12 @@ export default async function Users({ searchParams }: { searchParams: Promise<Re
                 <label className="user-pw" style={{ margin: 0 }}><span className="mobile-only">New password</span><input name="password" type="text" placeholder="(unchanged)" aria-label="New password" style={{ width: 130 }} /></label>
                 <button className="secondary">Save</button>
               </form>
+              {u.id !== me?.id && (
+                <form action={viewAs} className="view-as-form">
+                  <input type="hidden" name="userId" value={u.id} />
+                  <button className="link">View as {u.name}</button>
+                </form>
+              )}
             </td>
           </tr>))}
         </tbody>

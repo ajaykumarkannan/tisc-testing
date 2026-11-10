@@ -2,7 +2,7 @@ import "./globals.css";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getUser } from "@/lib/auth";
-import { logout } from "./actions";
+import { endViewAs, logout } from "./actions";
 import { canEditSheets, isAdmin, isExaminer } from "@/lib/permissions";
 import { RANK_LABEL } from "@/lib/tests";
 
@@ -29,6 +29,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </>
           )}
         </header>
+        {user?.viewedBy && (
+          <div className="view-as-banner" role="status">
+            <span>Viewing as <strong>{user.name}</strong> ({RANK_LABEL[user.rank]}). Read-only.</span>
+            <form action={endViewAs}><button className="secondary">Stop viewing</button></form>
+          </div>
+        )}
         <main>{children}</main>
       </body>
     </html>
