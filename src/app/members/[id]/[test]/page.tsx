@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { loadUser, requireUser } from "@/lib/auth";
-import { one } from "@/lib/db";
+import { one, query } from "@/lib/db";
 import { fmtDate, getSignoffs } from "@/lib/data";
 import { canAdminister, canViewMember, isEligible, isExaminer } from "@/lib/permissions";
 import { computeProgress } from "@/lib/progress";
@@ -32,7 +32,16 @@ export default async function SheetPage({ params, searchParams }: {
   ]);
   const byItem = new Map(signoffs.map((s) => [s.item_key, s]));
   const canTrack = isExaminer(user) && user.id !== id && !user.viewedBy;
-  const tracking = canTrack && !!(await one("SELECT 1 FROM tracked_tests WHERE examiner_id=$1 AND user_id=$2 AND test_key=$3", [user.id, id, testKey]));
+  // Everyone testing this candidate on this test: examiners who marked "I'm testing" plus anyone who signed an item.
+  const testers = await query<{ id: number; name: string; signed: number; tracking: boolean }>(
+    `SELECT u.id, u.name,
+            (SELECT count(*)::int FROM signoffs s WHERE s.user_id=$1 AND s.test_key=$2 AND s.examiner_id=u.id) AS signed,
+            EXISTS (SELECT 1 FROM tracked_tests t WHERE t.user_id=$1 AND t.test_key=$2 AND t.examiner_id=u.id) AS tracking
+       FROM users u
+      WHERE u.id IN (SELECT examiner_id FROM tracked_tests WHERE user_id=$1 AND test_key=$2
+                     UNION SELECT examiner_id FROM signoffs WHERE user_id=$1 AND test_key=$2)
+      ORDER BY signed DESC, u.name`, [id, testKey]);
+  const tracking = canTrack && testers.some((t) => t.id === user.id && t.tracking);
   const progress = computeProgress(test, byItem.keys());
   const eligible = isEligible(test, member);
   const canSign = !completion && eligible && canAdminister(user, testKey) && user.id !== id;
@@ -82,6 +91,7 @@ export default async function SheetPage({ params, searchParams }: {
         version={versionLabel(test)}
         track={canTrack ? { on: tracking } : undefined}
         fresh={!!sp.completed}
+        testers={testers.map((t) => ({ id: t.id, name: t.name, note: [t.tracking && "testing", t.signed > 0 && `${t.signed} signed`].filter(Boolean).join(", ") }))}
       />
 
       <PrintSheet test={test} candidate={member.name} sections={sections}

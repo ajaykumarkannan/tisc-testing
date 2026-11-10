@@ -625,6 +625,7 @@ main.container.narrow { max-width: 760px; }
 .sheet-cand__value { font-weight: 700; margin-top: 2px; overflow-wrap: anywhere; }
 @media (max-width: 479px) { .sheet-cand { grid-template-columns: 1fr; } .wind { min-width: 72px; } .wind b { font-size: 1.7rem; } }
 
+<<<<<<< HEAD
 .sec-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
 .sec-card__head {
   display: flex; align-items: center; gap: var(--s-3); padding: var(--s-4) var(--s-5);
@@ -815,3 +816,12 @@ main.container.narrow { max-width: 760px; }
   main.container { max-width: none; padding: 0; }
   .card, .sec-card { box-shadow: none !important; }
 }
+=======
+/* Admin "view as" banner */
+.view-as-banner { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: center; padding: 8px 16px; background: #fff4d6; color: #5c4400; border-bottom: 1px solid #e8cf86; }
+.view-as-banner form { margin: 0; }
+.view-as-form { padding: 0 8px 8px; margin: 0; }
+.track-form { margin: 8px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.my-test { display: flex; flex-direction: column; gap: 8px; }
+.testers { margin: 8px 0; line-height: 1.6; }
+>>>>>>> main

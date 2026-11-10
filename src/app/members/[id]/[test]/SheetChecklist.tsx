@@ -21,7 +21,7 @@ type Props = {
   testTitle: string; heading: string; revision: number; wind?: string; notes: string[];
   sections: SectionVM[]; done: number; total: number; canSign: boolean; canCredit: boolean;
   ineligible?: string; grants: string; completion?: { name: string; date: string; version: string }; version: string;
-  track?: { on: boolean }; fresh?: boolean;
+  track?: { on: boolean }; fresh?: boolean; testers: { id: number; name: string; note: string }[];
 };
 
 /** Wide screens show item details expanded by default; phones keep them collapsed. */
@@ -168,6 +168,16 @@ export function SheetChecklist(p: Props) {
             <button type="button" className="btn btn--secondary" onClick={() => window.print()} title="Print the paper sheet">
               <Printer size={18} aria-hidden="true" /><span className="btn-label">Print</span>
             </button>
+          </div>
+          <div className="testers">
+            <span className="testers__label">Testing this candidate:</span>{" "}
+            {p.testers.length === 0 ? <span className="muted">nobody yet</span> : p.testers.map((t, i) => (
+              <span key={t.id} className="tester">
+                <Avatar name={t.name} size="sm" />
+                <span>{t.name}<span className="muted"> ({t.note})</span></span>
+                {i < p.testers.length - 1 && <span className="sr-only">, </span>}
+              </span>
+            ))}
           </div>
           <div className="sheet-bar__progress">
             <div className="progress">
