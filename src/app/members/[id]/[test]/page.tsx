@@ -65,6 +65,9 @@ export default async function SheetPage({ params, searchParams }: {
             ✓ {member.name} passed {test.title} and {resultText}. Final tester {completion.name}, {fmtDate(completion.completed_at)}.
           </p>
         )}
+        {!completion && eligible && member.exceptions.includes(testKey) && !test.eligibleRanks.includes(member.rank) && (
+          <p className="flash ok">Opened by testing committee exception (see {member.name}’s member page).</p>
+        )}
         {!completion && !eligible && (
           <p className="flash error">{member.name} is not currently eligible for this test (rating: {RANK_LABEL[member.rank]}).</p>
         )}

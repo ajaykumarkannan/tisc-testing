@@ -15,7 +15,7 @@ describe("sheet definitions", () => {
   });
   it("match the item counts on the 2026 paper sheets", () => {
     expect(Object.fromEntries(TESTS.map((t) => [t.key, itemCount(t)]))).toEqual({
-      helms: 20, sr_helms: 9, skipper: 26, laser: 3, laser_only: 16, hobie: 5,
+      helms: 20, sr_helms: 9, skipper: 26, laser: 3, hobie: 5,
     });
   });
 });
@@ -43,12 +43,18 @@ describe("permissions", () => {
     expect(isEligible(by.helms, c("helms"))).toBe(false);
     expect(isEligible(by.sr_helms, c("novice"))).toBe(false);
     expect(isEligible(by.sr_helms, c("helms"))).toBe(true);
-    expect(isEligible(by.skipper, c("helms"))).toBe(false);
+    expect(isEligible(by.skipper, c("helms"))).toBe(true); // Helms can test for Skipper directly
+    expect(isEligible(by.skipper, c("novice"))).toBe(false);
     expect(isEligible(by.skipper, c("sr_helms"))).toBe(true);
     expect(isEligible(by.hobie, c("novice"))).toBe(false);
     expect(isEligible(by.hobie, c("helms"))).toBe(true);
     expect(isEligible(by.hobie, c("sr_helms", ["hobie"]))).toBe(false);
-    expect(isEligible(by.laser_only, c("novice"))).toBe(true);
+    expect(isEligible(by.laser, c("novice"))).toBe(false); // Laser Helms requires Helms
+    expect(by.laser_only).toBeUndefined();
+    // testing-committee exceptions open Sr Helms / Skipper to a novice, but not other tests
+    expect(isEligible(by.skipper, { ...c("novice"), exceptions: ["skipper"] })).toBe(true);
+    expect(isEligible(by.sr_helms, { ...c("novice"), exceptions: ["sr_helms"] })).toBe(true);
+    expect(isEligible(by.hobie, { ...c("novice"), exceptions: ["hobie"] })).toBe(false);
     expect(isEligible(by.laser, c("skipper"))).toBe(false); // skippers already hold Laser rights
     expect(isEligible(by.hobie, c("skipper"))).toBe(false);
   });

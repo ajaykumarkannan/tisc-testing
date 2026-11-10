@@ -83,4 +83,15 @@ CREATE TABLE IF NOT EXISTS tracked_tests (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (examiner_id, user_id, test_key)
 );
+
+-- Testing-committee exceptions: lets a member start a test their rating wouldn't normally allow
+-- (e.g. a Novice starting Senior Helms or Skipper).
+CREATE TABLE IF NOT EXISTS test_exceptions (
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  test_key   TEXT NOT NULL,
+  granted_by INTEGER NOT NULL REFERENCES users(id),
+  reason     TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, test_key)
+);
 `;

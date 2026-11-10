@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { endSession, getRealUser, loadUser, requireActor, requireAdminActor, startSession, startViewAs, stopViewAs } from "@/lib/auth";
 import { one, query, tx } from "@/lib/db";
-import { allowedStartingRanks, canAddMembers, canAdminister, canEditSheets, isEligible, isExaminer } from "@/lib/permissions";
+import { EXCEPTION_TESTS, allowedStartingRanks, canAddMembers, canAdminister, canEditSheets, canGrantExceptions, isEligible, isExaminer } from "@/lib/permissions";
 import { computeProgress } from "@/lib/progress";
 import { ENDORSEMENTS, RANKS, RULES_BY_KEY, allItems, type CreditKind } from "@/lib/tests";
 import { getSheet, versionLabel } from "@/lib/sheets";
@@ -182,6 +182,36 @@ export async function completeTest(f: FormData) {
   }
   revalidatePath("/", "layout");
   redirect(`${back}?completed=1`);
+}
+
+// ---------- testing-committee exceptions ----------
+export async function grantException(f: FormData) {
+  const actor = await requireActor();
+  const [userId, testKey] = [num(f, "userId"), str(f, "testKey")];
+  const back = `/members/${userId}`;
+  if (!canGrantExceptions(actor)) return fail(back, "Only the testing committee can grant exceptions");
+  if (!EXCEPTION_TESTS.includes(testKey)) return fail(back, "That test can't be opened by exception");
+  if (userId === actor.id) return fail(back, "You can't grant an exception for yourself");
+  const cand = await loadUser(userId);
+  if (!cand) return fail("/members", "Unknown member");
+  const target = RULES_BY_KEY[testKey].grants.rank!;
+  if (RANKS.indexOf(cand.rank) >= RANKS.indexOf(target)) return fail(back, "Member already holds that rating");
+  await query(
+    "INSERT INTO test_exceptions (user_id,test_key,granted_by,reason) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING",
+    [userId, testKey, actor.id, str(f, "reason").slice(0, 300) || null]);
+  revalidatePath(back);
+  redirect(`${back}?exception=1`);
+}
+
+export async function revokeException(f: FormData) {
+  const actor = await requireActor();
+  const [userId, testKey] = [num(f, "userId"), str(f, "testKey")];
+  const back = `/members/${userId}`;
+  if (!canGrantExceptions(actor)) return fail(back, "Only the testing committee can change exceptions");
+  if (await one("SELECT 1 FROM completions WHERE user_id=$1 AND test_key=$2", [userId, testKey])) return fail(back, "That test is already completed");
+  await query("DELETE FROM test_exceptions WHERE user_id=$1 AND test_key=$2", [userId, testKey]);
+  revalidatePath(back);
+  redirect(back);
 }
 
 // ---------- "My tests": examiners tracking candidates ----------
